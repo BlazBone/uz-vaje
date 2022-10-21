@@ -28,7 +28,8 @@ def imread_gray(path):
     Reads an image in gray. Image type is transformed from uint8 to float, and
     range of values is reduced from [0, 255] to [0, 1].
     """
-    I = Image.open(path).convert('L')  # PIL image opening and converting to gray.
+    I = Image.open(path).convert(
+        'L')  # PIL image opening and converting to gray.
     I = np.asarray(I)  # Converting to Numpy array.
     I = I.astype(np.float64) / 255
     return I
@@ -42,7 +43,8 @@ def imshow(img, title=None):
     """
 
     if len(img.shape) == 3:
-        plt.imshow(img)  # if type of data is "float", then values have to be in [0, 1]
+        # if type of data is "float", then values have to be in [0, 1]
+        plt.imshow(img)
     else:
         plt.imshow(img)
         plt.set_cmap('gray')  # also "hot", "nipy_spectral"
@@ -74,22 +76,24 @@ def convolve(I: np.ndarray, *ks):
     :return: Image convolved with all kernels.
     """
     for k in ks:
-        k = np.flip(k)  # filter2D performs correlation, so flipping is necessary
+        # filter2D performs correlation, so flipping is necessary
+        k = np.flip(k)
         I = cv2.filter2D(I, cv2.CV_64F, k)
     return I
 
 
-if __name__ == '__main__':  # False if this file is imported to another file and executed from there.
+# False if this file is imported to another file and executed from there.
+if __name__ == '__main__':
 
     # For this to work you need to put an image "image.jpg" to where you run the script.
 
     # Read an image in rgb (check the code in "UZ_utils" for details).
-    I = imread('image.jpg')  # see the definition above
+    I = imread('./images/bird.jpg')  # see the definition above
     imshow(I, 'rgb')
     print(I.shape, I.dtype, np.max(I))
 
     # gray
-    I = imread_gray('image.jpg')  # see the definition above
+    I = imread_gray('./images/bird.jpg')  # see the definition above
     imshow(I, 'gray')
     print(I.shape, I.dtype, np.max(I))
 

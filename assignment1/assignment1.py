@@ -1,6 +1,3 @@
-from hashlib import new
-from operator import invert
-from random import random
 from UZ_utils import *
 import numpy as np
 import cv2
@@ -13,15 +10,17 @@ def firstA():
     snippet:
     """
     I = imread("./images/umbrellas.jpg")
+    print(I.shape)
+    print(I)
+    print(I.dtype)
     imshow(I)
     return I
 
 
-def firstB():
+def firstB(I):
     """
     Convert the loaded image to grayscale.
     """
-    I = firstA()
     red = I[:, :, 0]
     green = I[:, :, 1]
     blue = I[:, :, 2]
@@ -31,21 +30,19 @@ def firstB():
     return together
 
 
-def firstC():
-    I = imread("./images/umbrellas.jpg")
+def firstC(I):
+
     # Cut and display a specific part of the loaded image.
     cutout = I[130:260, 240:450, 1]
     imshow(cutout)
-    cutout = I[130:260, 240:450, 0]
-    imshow(cutout)
-    cutout = I[130:260, 240:450, 2]
-    imshow(cutout)
+    # cutout = I[130:260, 240:450, 0]
+    # imshow(cutout)
+    # cutout = I[130:260, 240:450, 2]
+    # imshow(cutout)
     return cutout
 
 
-def firstD():
-
-    I = imread("./images/umbrellas.jpg")
+def firstD(I):
     invers = I.copy()
     invers[130:260, 240:450, :] = np.ones_like(
         invers[130:260, 240:450, :]) - invers[130:260, 240:450, :]
@@ -60,12 +57,10 @@ def firstD():
     plt.show()
 
 
-def firstE():
-    I = imread_gray("./images/umbrellas.jpg")
-# already grayscale and floating point
+def firstE(I):
+    # already grayscale and floating point
     ICpy = (I.copy() * 63).astype(np.uint8)
 
-    print(ICpy)
     plt.subplot(1, 2, 1)
     plt.imshow(ICpy, vmax=255, cmap='gray')
     plt.title('uint8')
@@ -77,61 +72,91 @@ def firstE():
 
 
 def first():
-    firstA()
-    firstB()
-    firstC()
-    firstD()
-    firstE()
+    I = firstA()
+    I_gray = firstB(I)
+    cutout = firstC(I)
+    firstD(I)
+    firstE(I_gray)
 
 
 def secondA():
     I = imread_gray("./images/bird.jpg")
     mask = I.copy()
-    threshold = 0.2
+    threshold = 0.29  # otsu method returned this value
     mask[I < threshold] = 0
     mask[I > threshold] = 1
     plot2(I, 'original', mask, 'mask')
-    i = myhist1(I, 255)
-    plt.plot(i)
-    plt.show()
-    print(sum(i))
-    print(len(i))
-    i = myhist1(I, 10)
-    print(sum(i))
-    print(len(i))
+    return mask
 
-    plt.plot(i)
+
+def secondB():
+    I = imread_gray("./images/bird.jpg")
+    # bar za histograme
+    i = myhist1(I*255, 255)
+    plt.bar(height=i, x=range(255))
+    plt.title("myhist1, image bird.jpg, bins=255")
+    plt.show()
+
+    i = myhist1(I*255, 10)
+
+    plt.bar(height=i, x=range(10))
+    plt.title("myhist1, image bird.jpg, bins=10")
+
     plt.show()
     i = myhist2(I, 25)
-    plt.plot(i)
+    plt.bar(height=i, x=range(25))
+    plt.title("myhist2, image bird.jpg, bins=25")
     plt.show()
-    print(sum(i))
-    print(len(i))
 
     i = myhist2(I, 255)
-    plt.plot(i)
+    plt.bar(height=i, x=range(255))
+    plt.title("myhist2, image bird.jpg, bins=255")
     plt.show()
-    print(sum(i))
-    print(len(i))
 
 
-def diffBetweenMyHist():
-    print('hej')
-    I1 = imread_gray("./images/bird.jpg")
-    I2 = imread_gray("./images/coins.jpg")
-    I3 = imread_gray("./images/eagle.jpg")
+def secondC():
+    # mej neko sliko ki ima recimo vrednosti samo 150 in en hist bo meu nekje na sredi en pa bo lepo raztegnu
     I4 = imread_gray("./images/umbrellas.jpg")
 
-    images = [I1, I2, I3, I4]
+    images = [I4]
 
     for image in images:
         rand = 50
-        h1 = myhist1(image, rand)
+        h1 = myhist1(image * 150, rand)
         h2 = myhist2(image, rand)
 
-        plt.plot(h1, label='myhist1')
-        plt.plot(h2, label='myhist2')
+        plt.bar(x=range(50), height=h1, label='myhist1')
+        plt.title("myhist1 samo do 150")
         plt.show()
+
+        plt.bar(x=range(50), height=h2, label='myhist2')
+        plt.title("myhist2 razsiri cez celo")
+
+        plt.show()
+
+
+def secondD():
+    I1 = imread_gray("./images/lightest.jpg")
+    I2 = imread_gray("./images/light.jpg")
+    I3 = imread_gray("./images/dark.jpg")
+
+    imshow(I1)
+    imshow(I2)
+    imshow(I3)
+    h1 = myhist2(I1, 100)
+    h2 = myhist2(I2, 100)
+    h3 = myhist2(I3, 100)
+
+    plt.bar(x=range(100), height=h1, label='lighter')
+    plt.title("the lightest image")
+    plt.show()
+
+    plt.bar(x=range(100), height=h2, label='darker')
+    plt.title('light image')
+    plt.show()
+    plt.bar(x=range(100), height=h3, label='darker')
+    plt.title('darker image')
+    plt.show()
 
 
 def myhist2(I, numofbins):
@@ -150,14 +175,11 @@ def myhist2(I, numofbins):
 
 def myhist1(I, numofbins):
     I = I.reshape(-1)
-    I = I*255
     a = np.bincount(I.astype(np.uint8))
     interval = 255//(numofbins)
     hist = []
     for i in range(numofbins):
         hist.append(sum(a[i*interval:(i+1) * interval]))
-
-    print(hist)
     return hist
 
 
@@ -173,6 +195,180 @@ def plot2(one, title1, two, title2, cmap='gray'):
     plt.show()
 
 
+def myOtsu(I):
+    # max threshold is max value in image (B&W) since we pass in normalized images we just expand them
+    max_val = max(I.reshape(-1))
+    # we could make algo check more threshold
+    possible_threshholds = np.arange(0, max_val, 0.005)
+
+    # for first iteration
+    min_var = -1
+    min_var_threshold = -1
+
+    for thresh in possible_threshholds:
+        # split image into two parts on threshold
+        foreground = I[I > thresh]
+        weight_foreground = len(foreground) / len(I.reshape(-1))
+        variance_foreground = np.var(foreground)
+
+        background = I[I <= thresh]
+        weight_background = len(background) / len(I.reshape(-1))
+        variance_background = np.var(background)
+
+        # calculate variance
+        variance = weight_foreground * variance_foreground + \
+            weight_background * variance_background
+
+        # save if variance is smaller
+        if min_var == -1 or variance < min_var:
+            min_var = variance
+            min_var_threshold = thresh
+
+    return min_var_threshold
+
+
+def second():
+    secondA()
+    secondB()
+    secondC()
+    secondD()
+
+
+def thirdA(n=5):
+    I = imread("./images/mask.png")
+    SE = np.ones((n, n), np.uint8)
+    I_eroded = cv2.erode(I, SE, iterations=1)
+    I_dilate = cv2.dilate(I, SE, iterations=1)
+    I_closing = cv2.erode(I_dilate, SE, iterations=1)
+    I_opening = cv2.dilate(I_eroded, SE, iterations=1)
+
+    plt.subplot(1, 5, 1)
+    plt.imshow(I)
+    plt.title('original')
+
+    plt.subplot(1, 5, 2)
+    plt.imshow(I_eroded)
+    plt.title('eroded ')
+
+    plt.subplot(1, 5, 3)
+    plt.imshow(I_dilate)
+    plt.title('dilated')
+
+    plt.subplot(1, 5, 4)
+    plt.imshow(I_closing)
+    plt.title('closing')
+
+    plt.subplot(1, 5, 5)
+    plt.imshow(I_opening)
+    plt.title('opening')
+
+    plt.show()
+
+
+def thirdB():
+    mask = secondA()
+    se = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    I = cv2.dilate(mask, se, iterations=5)
+    imshow(I)
+    I = cv2.erode(I, se, iterations=3)
+
+    imshow(I)
+    return mask
+
+
+def imask(image, mask):
+    mask = np.expand_dims(mask, axis=2)
+    cut_image = image * mask
+    imshow(cut_image)
+    return cut_image
+
+
+def thirdD():
+    I = imread_gray("./images/eagle.jpg")
+    imshow(I)
+    mask = I.copy()
+
+    threshold = myOtsu(I)
+
+    mask[I < threshold] = 0
+    mask[I > threshold] = 1
+    # fix mask
+    imshow(mask)
+    se = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    mask = cv2.erode(mask, se, iterations=4)
+    mask = cv2.dilate(mask, se, iterations=3)
+
+    plot2(imread("./images/eagle.jpg"), 'original', mask, 'mask')
+
+    imask(imread("./images/eagle.jpg"), mask)
+    # invert the image
+    I = 1 - I
+
+    mask[I < threshold] = 0
+    mask[I > threshold] = 1
+    imshow(mask)
+    mask = cv2.dilate(mask, np.ones((3, 3), np.uint8), iterations=4)
+    mask = cv2.erode(mask, np.ones((3, 3), np.uint8), iterations=2)
+    mask = cv2.dilate(mask, np.ones((3, 3), np.uint8), iterations=3)
+    mask = cv2.erode(mask, np.ones((3, 3), np.uint8), iterations=5)
+
+    plot2(I, 'original', mask, 'mask')
+    imask(imread("./images/eagle.jpg"), mask)
+
+    return mask
+
+
+def thirdE():
+    I = imread_gray("./images/coins.jpg")
+    I = 1 - I
+    threshold = 0.1
+    mask = I.copy()
+    mask[I < threshold] = 0
+    mask[I > threshold] = 1
+    plot2(imread("./images/coins.jpg"), 'original', mask, 'mask')
+    SE = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (4, 4))
+    I_eroded = cv2.erode(mask, SE, iterations=1)
+    I_dilate = cv2.dilate(I_eroded, SE, iterations=1)
+    imshow(I_dilate)
+    connectivity = 8
+    a = cv2.connectedComponentsWithStats(
+        np.array(mask*255).astype(np.uint8), connectivity, cv2.CV_32S)
+    imshow(a[1])
+    
+    b = np.array(a[1]).reshape(-1)
+
+    change = set()
+    for i, x in enumerate(np.bincount(b)):
+        if x > 700:
+            change.add(i)
+
+    for i, x in enumerate(a[1].reshape(-1)):
+        if x in change:
+            a[1].reshape(-1)[i] = 0
+        else:
+            a[1].reshape(-1)[i] = 1
+
+    mask_end = np.expand_dims(np.array(a[1]), axis=2)
+    imshow(mask_end)
+    coins_color = imread("./images/coins.jpg")
+    coins_color = coins_color * mask_end
+    coins_color[coins_color == 0] = 255
+    # print(coins_color)
+    print(coins_color.shape)
+    imshow(coins_color)
+
+
+def third():
+    thirdA()
+    mask = thirdB()
+    cut_image = imask(imread("./images/bird.jpg"), mask)  # third C
+    thirdD()
+    thirdE()
+
+
 if __name__ == "__main__":
-    # secondA()
-    diffBetweenMyHist()
+    print('hej')
+    # first()
+    # second()
+    secondD()
+    # third()

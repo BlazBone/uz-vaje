@@ -35,6 +35,8 @@ def firstC(I):
     # Cut and display a specific part of the loaded image.
     cutout = I[130:260, 240:450, 1]
     imshow(cutout)
+    plt.imshow(cutout, cmap='gray')
+    plt.show()
     # cutout = I[130:260, 240:450, 0]
     # imshow(cutout)
     # cutout = I[130:260, 240:450, 2]
@@ -140,22 +142,60 @@ def secondD():
     I2 = imread_gray("./images/light.jpg")
     I3 = imread_gray("./images/dark.jpg")
 
-    imshow(I1)
-    imshow(I2)
-    imshow(I3)
-    h1 = myhist2(I1, 100)
-    h2 = myhist2(I2, 100)
-    h3 = myhist2(I3, 100)
+    h1 = myhist2(I1, 150)
+    h11 = myhist2(I1, 30)
 
-    plt.bar(x=range(100), height=h1, label='lighter')
-    plt.title("the lightest image")
+    h2 = myhist2(I2, 150)
+    h21 = myhist2(I2, 30)
+
+    h3 = myhist2(I3, 150)
+    h31 = myhist2(I3, 30)
+
+    a, axis = plt.subplots(3, 3)
+    axis[0, 0].imshow(I1, cmap='gray')
+    axis[0, 0].set_title("lightest")
+    axis[0, 1].bar(x=range(150), height=h1)
+    axis[0, 2].bar(x=range(30), height=h11)
+
+    axis[1, 0].imshow(I2, cmap='gray')
+    axis[1, 0].set_title("light")
+    axis[1, 1].bar(x=range(150), height=h2)
+    axis[1, 2].bar(x=range(30), height=h21)
+
+    axis[2, 0].imshow(I3, cmap='gray')
+    axis[2, 0].set_title("dark")
+    axis[2, 1].bar(x=range(150), height=h3)
+    axis[2, 2].bar(x=range(30), height=h31)
+
     plt.show()
 
-    plt.bar(x=range(100), height=h2, label='darker')
-    plt.title('light image')
-    plt.show()
-    plt.bar(x=range(100), height=h3, label='darker')
-    plt.title('darker image')
+
+def secondE():
+    I1 = imread_gray("./images/eagle.jpg")
+    I2 = imread_gray("./images/bird.jpg")
+    I3 = imread_gray("./images/coins.jpg")
+    I4 = imread_gray("./images/umbrellas.jpg")
+
+    t1 = myOtsu(I1)
+    t2 = myOtsu(I2)
+    t3 = myOtsu(I3)
+    t4 = myOtsu(I4)
+
+    a, two = plt.subplots(2, 2)
+    a.suptitle("comparison of myOtsu")
+
+    two[0, 1].imshow(I2, cmap="gray")
+    two[0, 1].set(title="bird image, threshold: " + str(t2))
+
+    two[0, 0].imshow(I3, cmap="gray")
+    two[0, 0].set(title="coins image, threshold: " + str(t3))
+
+    two[1, 0].imshow(I4, cmap="gray")
+    two[1, 0].set(title="umbrellas image, threshold: " + str(t4))
+
+    two[1, 1].imshow(I1, cmap="gray")
+    two[1, 1].set(title="eagle image, threshold: " + str(t1))
+
     plt.show()
 
 
@@ -170,7 +210,7 @@ def myhist2(I, numofbins):
             hist[-1] += 1
         else:
             hist[int((i - min_v) // interval)] += 1
-    return hist
+    return np.array(hist)/sum(hist)
 
 
 def myhist1(I, numofbins):
@@ -180,7 +220,7 @@ def myhist1(I, numofbins):
     hist = []
     for i in range(numofbins):
         hist.append(sum(a[i*interval:(i+1) * interval]))
-    return hist
+    return np.array(hist)/sum(hist)
 
 
 def plot2(one, title1, two, title2, cmap='gray'):
@@ -232,46 +272,47 @@ def second():
     secondB()
     secondC()
     secondD()
+    secondE()
 
 
 def thirdA(n=5):
-    I = imread("./images/mask.png")
-    SE = np.ones((n, n), np.uint8)
-    I_eroded = cv2.erode(I, SE, iterations=1)
-    I_dilate = cv2.dilate(I, SE, iterations=1)
-    I_closing = cv2.erode(I_dilate, SE, iterations=1)
-    I_opening = cv2.dilate(I_eroded, SE, iterations=1)
 
-    plt.subplot(1, 5, 1)
-    plt.imshow(I)
-    plt.title('original')
+    for n in [1, 2, 3, 4]:
+        I = imread("./images/mask.png")
+        SE = np.ones((n, n), np.uint8)
+        I_eroded = cv2.erode(I, SE, iterations=1)
+        I_dilate = cv2.dilate(I, SE, iterations=1)
+        I_closing = cv2.erode(I_dilate, SE, iterations=1)
+        I_opening = cv2.dilate(I_eroded, SE, iterations=1)
 
-    plt.subplot(1, 5, 2)
-    plt.imshow(I_eroded)
-    plt.title('eroded ')
+        plt.subplot(1, 5, 1)
+        plt.imshow(I)
+        plt.title('original')
 
-    plt.subplot(1, 5, 3)
-    plt.imshow(I_dilate)
-    plt.title('dilated')
+        plt.subplot(1, 5, 2)
+        plt.imshow(I_eroded)
+        plt.title('eroded ')
 
-    plt.subplot(1, 5, 4)
-    plt.imshow(I_closing)
-    plt.title('closing')
+        plt.subplot(1, 5, 3)
+        plt.imshow(I_dilate)
+        plt.title('dilated')
 
-    plt.subplot(1, 5, 5)
-    plt.imshow(I_opening)
-    plt.title('opening')
+        plt.subplot(1, 5, 4)
+        plt.imshow(I_closing)
+        plt.title('closing')
 
-    plt.show()
+        plt.subplot(1, 5, 5)
+        plt.imshow(I_opening)
+        plt.title('opening')
+
+        plt.show()
 
 
 def thirdB():
     mask = secondA()
     se = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     I = cv2.dilate(mask, se, iterations=5)
-    imshow(I)
-    I = cv2.erode(I, se, iterations=3)
-
+    I = cv2.erode(I, se, iterations=4)
     imshow(I)
     return mask
 
@@ -334,7 +375,7 @@ def thirdE():
     a = cv2.connectedComponentsWithStats(
         np.array(mask*255).astype(np.uint8), connectivity, cv2.CV_32S)
     imshow(a[1])
-    
+
     b = np.array(a[1]).reshape(-1)
 
     change = set()
@@ -353,7 +394,6 @@ def thirdE():
     coins_color = imread("./images/coins.jpg")
     coins_color = coins_color * mask_end
     coins_color[coins_color == 0] = 255
-    # print(coins_color)
     print(coins_color.shape)
     imshow(coins_color)
 
@@ -370,5 +410,4 @@ if __name__ == "__main__":
     print('hej')
     # first()
     # second()
-    secondD()
-    # third()
+    third()

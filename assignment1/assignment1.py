@@ -11,7 +11,6 @@ def firstA():
     """
     I = imread("./images/umbrellas.jpg")
     print(I.shape)
-    print(I)
     print(I.dtype)
     imshow(I)
     return I
@@ -110,9 +109,9 @@ def secondB():
     plt.title("myhist2, image bird.jpg, bins=25")
     plt.show()
 
-    i = myhist2(I, 255)
-    plt.bar(height=i, x=range(255))
-    plt.title("myhist2, image bird.jpg, bins=255")
+    i = myhist2(I, 50)
+    plt.bar(height=i, x=range(50))
+    plt.title("myhist2, image bird.jpg, bins=50")
     plt.show()
 
 
@@ -394,7 +393,6 @@ def thirdE():
     coins_color = imread("./images/coins.jpg")
     coins_color = coins_color * mask_end
     coins_color[coins_color == 0] = 255
-    print(coins_color.shape)
     imshow(coins_color)
 
 
@@ -408,6 +406,6 @@ def third():
 
 if __name__ == "__main__":
     print('hej')
-    # first()
-    # second()
+    first()
+    second()
     third()

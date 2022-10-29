@@ -137,9 +137,9 @@ def secondC():
 
 
 def secondD():
-    I1 = imread_gray("./images/lightest.jpg")
-    I2 = imread_gray("./images/light.jpg")
-    I3 = imread_gray("./images/dark.jpg")
+    I1 = imread_gray("./images/lightest1.jpg")
+    I2 = imread_gray("./images/light2.jpg")
+    I3 = imread_gray("./images/dark1.jpg")
 
     h1 = myhist2(I1, 150)
     h11 = myhist2(I1, 30)
@@ -406,6 +406,9 @@ def third():
 
 if __name__ == "__main__":
     print('hej')
-    first()
-    second()
-    third()
+    # first()
+    # second()
+    # third()
+    # secondB()
+    # thirdB()
+    thirdE()

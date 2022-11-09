@@ -87,7 +87,81 @@ def oneC():
     plt.show()
 
 
-def oneD():
+def get_image_derivetive(image, sigma):
+    gaus = np.array([gauss_kernel(sigma)])
+
+    gaus_dx = np.array([gaussdx(sigma)])
+    gaus_dx = np.flip(gaus_dx)
+
+    I_x = cv2.filter2D(image, -1, gaus.T)
+    I_x = cv2.filter2D(I_x, -1, gaus_dx)
+
+    I_y = cv2.filter2D(image, -1, gaus)
+    I_y = cv2.filter2D(I_y, -1, gaus_dx.T)
+
+    return I_x, I_y
+
+
+def get_second_image_derivative(image, sigma):
+    gaus = np.array([gauss_kernel(sigma)])
+    gaus_dx = np.array([gaussdx(sigma)])
+    gaus_dx = np.flip(gaus_dx)
+
+    I_x, I_y = get_image_derivetive(image, sigma)
+
+    I_xx = cv2.filter2D(I_x, -1, gaus.T)
+    I_xx = cv2.filter2D(I_xx, -1, gaus_dx)
+
+    I_yy = cv2.filter2D(I_y, -1, gaus)
+    I_yy = cv2.filter2D(I_yy, -1, gaus_dx.T)
+
+    I_xy = cv2.filter2D(I_x, -1, gaus)
+    I_xy = cv2.filter2D(I_xy, -1, gaus_dx.T)
+
+    return I_xx, I_yy, I_xy
+
+
+def gradient_magnitude(image, sigma):
+    I_x, I_y = get_image_derivetive(image, sigma)
+    I_mag = np.sqrt(np.square(I_x) + np.square(I_y))
+    I_dir = np.arctan2(I_y, I_x)
+    return I_mag, I_dir
+
+
+def oneD(image_path="./images/museum.jpg"):
+    image = imread_gray(image_path)
+    sigma = 1
+
+    I_x, I_y = get_image_derivetive(image, sigma=sigma)
+    I_mag, I_dir = gradient_magnitude(image, sigma=sigma)
+    I_xx, I_yy, I_xy = get_second_image_derivative(image, sigma=sigma)
+
+    fig, ax = plt.subplots(2, 4)
+    ax[0, 0].imshow(image, cmap='gray')
+    ax[0, 0].set_title("Original")
+
+    ax[0, 1].imshow(I_x, cmap='gray')
+    ax[0, 1].set_title("I_x")
+
+    ax[0, 2].imshow(I_y, cmap='gray')
+    ax[0, 2].set_title("I_y")
+
+    ax[0, 3].imshow(I_mag, cmap='gray')
+    ax[0, 3].set_title("I_mag")
+
+    ax[1, 0].imshow(I_xx, cmap='gray')
+    ax[1, 0].set_title("I_xx")
+
+    ax[1, 1].imshow(I_xy, cmap='gray')
+    ax[1, 1].set_title("I_xy")
+
+    ax[1, 2].imshow(I_yy, cmap='gray')
+    ax[1, 2].set_title("I_yy")
+
+    ax[1, 3].imshow(I_dir, cmap='gray')
+    ax[1, 3].set_title("I_dir")
+
+    plt.show()
     print("Exercise 1D")
 
 

@@ -49,15 +49,16 @@ def oneC():
     gaus_dx = np.array([gaussdx(4)])
     # gaus is symetric, derivetivce is not
     gaus_dx = np.flip(gaus_dx)
-   # order of convolution is important
+
     g_gt = cv2.filter2D(impulse, -1, gaus)
     g_gt = cv2.filter2D(g_gt, -1, gaus.T)
 
     g_dt = cv2.filter2D(impulse, -1, gaus)
     g_dt = cv2.filter2D(g_dt, -1, gaus_dx.T)
 
-    d_gt = cv2.filter2D(impulse, -1, gaus_dx)
-    d_gt = cv2.filter2D(d_gt, -1, gaus.T)
+    # order of convolution is not important
+    d_gt = cv2.filter2D(impulse, -1, gaus.T)
+    d_gt = cv2.filter2D(d_gt, -1, gaus_dx)
 
     gt_d = cv2.filter2D(impulse, -1, gaus.T)
     gt_d = cv2.filter2D(gt_d, -1, gaus_dx)
@@ -167,14 +168,54 @@ def oneD(image_path="./images/museum.jpg"):
 
 def exercise1():
     print("Exercise 1")
-    # oneB()
-    # oneC()
+    oneB()
+    oneC()
     oneD()
+
+
+def fineedges(image, sigma, theta):
+    image, _ = gradient_magnitude(image, sigma)
+    image = np.where(image > theta, 1, 0)
+    plt.imshow(image, cmap='gray')
+    plt.title("Fine Edges, sigma = {}, theta = {}".format(sigma, theta))
+    plt.show()
+
+
+def twoA():
+    print("Exercise 2A")
+    thetas = np.arange(0, 0.3, 0.01)
+    for theta in thetas:
+        fineedges(imread_gray("./images/museum.jpg"), 1, theta)
+
+    # mybe 0.1 is a good value for theta
+
+
+def twoB():
+    print("Exercise 2B")
+    """
+    Using magnitude produces only a first approximation of detected edges. Unfortunately,
+these are often wide and we would like to only return edges one pixel wide.
+Therefore, you will implement non-maxima suppression based on the image derivative
+magnitudes and angles. Iterate through all the pixels and for each search its
+8-neighborhood. Check the neighboring pixels parallel to the gradient direction and
+set the current pixel to 0 if it is not the largest in the neighborhood (based on
+derivative magnitude). You only need to compute the comparison to actual pixels,
+interpolating to more accuracy is not required.
+    """
+    
+    # mybe 0.1 is a good value for theta
+
+
+def exercise2():
+    print("Exercise 2")
+    twoA()
+    twoB()
 
 
 def main():
     print("Hello World!")
-    exercise1()
+    # exercise1()
+    exercise2()
 
 
 if __name__ == "__main__":

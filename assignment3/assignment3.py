@@ -194,21 +194,40 @@ def twoB():
     print("Exercise 2B")
     """
     Using magnitude produces only a first approximation of detected edges. Unfortunately,
-these are often wide and we would like to only return edges one pixel wide.
-Therefore, you will implement non-maxima suppression based on the image derivative
-magnitudes and angles. Iterate through all the pixels and for each search its
-8-neighborhood. Check the neighboring pixels parallel to the gradient direction and
-set the current pixel to 0 if it is not the largest in the neighborhood (based on
-derivative magnitude). You only need to compute the comparison to actual pixels,
-interpolating to more accuracy is not required.
+    these are often wide and we would like to only return edges one pixel wide.
+    Therefore, you will implement non-maxima suppression based on the image derivative
+    magnitudes and angles. Iterate through all the pixels and for each search its
+    8-neighborhood. Check the neighboring pixels parallel to the gradient direction and
+    set the current pixel to 0 if it is not the largest in the neighborhood (based on
+    derivative magnitude). You only need to compute the comparison to actual pixels,
+    interpolating to more accuracy is not required.
     """
+
+    image = imread_gray("./images/museum.jpg")
+    I_mag, I_dir = gradient_magnitude(image, 1)
+    print(np.max(I_dir), np.min(I_dir))
     
+    plt.imshow(I_mag, cmap='gray')
+    plt.title("Magnitude")
+    plt.show()
+    for x in range(1, image.shape[0] - 1):
+        for y in range(1, image.shape[1] - 1):
+            if I_dir[x, y] >= 0:
+                if I_mag[x, y] < I_mag[x, y + 1] or I_mag[x, y] < I_mag[x, y - 1]:
+                    I_mag[x, y] = 0
+            else:
+                if I_mag[x, y] < I_mag[x + 1, y] or I_mag[x, y] < I_mag[x - 1, y]:
+                    I_mag[x, y] = 0
+
+    plt.imshow(I_mag, cmap='gray')
+    plt.title("Non-maxima suppression")
+    plt.show()
     # mybe 0.1 is a good value for theta
 
 
 def exercise2():
     print("Exercise 2")
-    twoA()
+    # twoA()
     twoB()
 
 

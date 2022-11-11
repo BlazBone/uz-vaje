@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 from a3_utils import *
 import cv2 as cv2
 from UZ_utils import *
+import math
 
 
 def gauss_kernel(sigma):
@@ -100,7 +101,7 @@ def get_image_derivetive(image, sigma):
     I_y = cv2.filter2D(image, -1, gaus)
     I_y = cv2.filter2D(I_y, -1, gaus_dx.T)
 
-    return I_x, I_y
+    return I_x/np.sum(I_x), I_y/np.sum(I_y)
 
 
 def get_second_image_derivative(image, sigma):
@@ -119,14 +120,14 @@ def get_second_image_derivative(image, sigma):
     I_xy = cv2.filter2D(I_x, -1, gaus)
     I_xy = cv2.filter2D(I_xy, -1, gaus_dx.T)
 
-    return I_xx, I_yy, I_xy
+    return I_xx/np.sum(I_xx), I_yy/np.sum(I_yy), I_xy/np.sum(I_xy)
 
 
 def gradient_magnitude(image, sigma):
     I_x, I_y = get_image_derivetive(image, sigma)
     I_mag = np.sqrt(np.square(I_x) + np.square(I_y))
     I_dir = np.arctan2(I_y, I_x)
-    return I_mag, I_dir
+    return I_mag/np.sum(I_mag), I_dir
 
 
 def oneD(image_path="./images/museum.jpg"):
@@ -190,6 +191,44 @@ def twoA():
     # mybe 0.1 is a good value for theta
 
 
+def closest_side(angle):
+    sides = [-math.pi, -3 * math.pi / 4, -math.pi / 2, -math.pi /
+             4, 0, math.pi / 4, math.pi / 2, 3 * math.pi / 4, math.pi]
+    return min(sides, key=lambda x: abs(x - angle))
+
+
+def myOtsu(I):
+    # max threshold is max value in image (B&W) since we pass in normalized images we just expand them
+    max_val = max(I.reshape(-1))
+    # we could make algo check more threshold
+    possible_threshholds = np.arange(0, max_val, 0.005)
+
+    # for first iteration
+    min_var = -1
+    min_var_threshold = -1
+
+    for thresh in possible_threshholds:
+        # split image into two parts on threshold
+        foreground = I[I > thresh]
+        weight_foreground = len(foreground) / len(I.reshape(-1))
+        variance_foreground = np.var(foreground)
+
+        background = I[I <= thresh]
+        weight_background = len(background) / len(I.reshape(-1))
+        variance_background = np.var(background)
+
+        # calculate variance
+        variance = weight_foreground * variance_foreground + \
+            weight_background * variance_background
+
+        # save if variance is smaller
+        if min_var == -1 or variance < min_var:
+            min_var = variance
+            min_var_threshold = thresh
+
+    return min_var_threshold
+
+
 def twoB():
     print("Exercise 2B")
     """
@@ -204,22 +243,73 @@ def twoB():
     """
 
     image = imread_gray("./images/museum.jpg")
-    I_mag, I_dir = gradient_magnitude(image, 1)
+    I_mag, I_dir = gradient_magnitude(image, 0.5)
     print(np.max(I_dir), np.min(I_dir))
-    
+
     plt.imshow(I_mag, cmap='gray')
     plt.title("Magnitude")
     plt.show()
-    for x in range(1, image.shape[0] - 1):
-        for y in range(1, image.shape[1] - 1):
-            if I_dir[x, y] >= 0:
-                if I_mag[x, y] < I_mag[x, y + 1] or I_mag[x, y] < I_mag[x, y - 1]:
-                    I_mag[x, y] = 0
-            else:
-                if I_mag[x, y] < I_mag[x + 1, y] or I_mag[x, y] < I_mag[x - 1, y]:
-                    I_mag[x, y] = 0
+    I_mag_copy = np.copy(I_mag)
+    # walk through all pixels with indexes
+
+    for i in range(1, I_mag.shape[0] - 1):
+        for j in range(1, I_mag.shape[1] - 1):
+            # get the angle of the pixel
+            angle = -I_dir[i, j]
+            # get the closest side
+            side = closest_side(angle)
+            # get the magnitude of the pixel
+            mag = I_mag[i, j]
+            # get the magnitude of the pixels in the direction of the side
+            if side == -math.pi:
+                mag1 = I_mag[i - 1, j]
+                mag2 = I_mag[i + 1, j]
+            elif side == -3 * math.pi / 4:
+                mag1 = I_mag[i - 1, j - 1]
+                mag2 = I_mag[i + 1, j + 1]
+            elif side == -math.pi / 2:
+                mag1 = I_mag[i, j - 1]
+                mag2 = I_mag[i, j + 1]
+            elif side == -math.pi / 4:
+                mag1 = I_mag[i + 1, j - 1]
+                mag2 = I_mag[i - 1, j + 1]
+            elif side == 0:
+                mag1 = I_mag[i - 1, j - 1]
+                mag2 = I_mag[i + 1, j + 1]
+            elif side == math.pi / 4:
+                mag1 = I_mag[i - 1, j - 1]
+                mag2 = I_mag[i + 1, j + 1]
+            elif side == math.pi / 2:
+                mag1 = I_mag[i, j - 1]
+                mag2 = I_mag[i, j + 1]
+            elif side == 3 * math.pi / 4:
+                mag1 = I_mag[i - 1, j - 1]
+                mag2 = I_mag[i + 1, j + 1]
+            elif side == math.pi:
+                mag1 = I_mag[i - 1, j]
+                mag2 = I_mag[i + 1, j]
+
+            # if the magnitude of the pixel is not the largest, set it to 0
+            if mag < mag1 or mag < mag2:
+                I_mag[i, j] = 0
 
     plt.imshow(I_mag, cmap='gray')
+    plt.title("Non-maxima suppression")
+    plt.show()
+    print(I_mag)
+    print(np.max(I_mag), np.min(I_mag))
+    I_mag = I_mag/np.max(I_mag)
+    # I_mag = I_mag/np.min(I_mag)
+    # print(I_mag)
+    # print(np.max(I_mag), np.min(I_mag))
+    # test = np.arange(0, 1, 0.05)
+    # for t in test:
+    #     I_mag_temp = np.where(I_mag > t, 1, 0)
+    #     plt.imshow(I_mag_temp, cmap='gray')
+    #     plt.title("Non-maxima suppression, t = {}".format(t))
+    #     plt.show()
+    print(myOtsu(I_mag))
+    plt.imshow(np.where(I_mag < 0.17, 0, 1), cmap='gray')
     plt.title("Non-maxima suppression")
     plt.show()
     # mybe 0.1 is a good value for theta
@@ -231,10 +321,15 @@ def exercise2():
     twoB()
 
 
+def exercise3():
+    print("Exercise 3")
+
+
 def main():
     print("Hello World!")
     # exercise1()
     exercise2()
+    # exercise3()
 
 
 if __name__ == "__main__":

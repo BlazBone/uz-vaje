@@ -245,13 +245,11 @@ def twoB():
 
     image = imread_gray("./images/museum.jpg")
     I_mag, I_dir = gradient_magnitude(image, sigma=1)
-    print(np.max(I_dir), np.min(I_dir))
-    I_edges = findedges(image, 1, 0.16)
     plt.imshow(I_mag, cmap='gray')
     plt.title("Magnitude")
     plt.show()
 
-    I_mag_copy = np.copy(I_edges)
+    I_mag_copy = np.copy(I_mag)
     # walk through all pixels with indexes
 
     for i in range(1, I_mag.shape[0] - 1):
@@ -280,91 +278,77 @@ def twoB():
                 I_mag_copy[i, j] = 0
             # if the magnitude of the pixel is not the largest, set it to 0
 
-    I_mag_copy = np.where(I_mag_copy > 0.16, 1, 0)
-    plt.imshow(I_mag_copy, cmap='gray')
-    plt.show()
+    # I_mag_copy = np.where(I_mag_copy > 0.16, 1, 0)
+    return I_mag_copy
     # mybe 0.1 is a good value for theta
+
+
+def twoC():
+    t_low = 0.08
+    t_high = 0.50
+    image = np.where(twoB() < t_low, 0, 1)
+    image = image.astype(np.uint8)
+    test, labels, _, _ = cv2.connectedComponentsWithStats(
+        image, connectivity=8, ltype=cv2.CV_32S)
+
+    image.any()
+    for i in range(test):
+        if((np.greater(image[labels == i], t_high).any())):
+            image[labels == i] = 1
+        else:
+            image[labels == i] = 0
+
+    plt.imshow(image, cmap='gray')
+    plt.title("Canny Edge Detection")
+    plt.show()
 
 
 def exercise2():
     print("Exercise 2")
     twoA()
-    twoB()
+    NMS = twoB()
+    NMS = np.where(NMS > 0.16, 1, 0)
+    plt.imshow(NMS, cmap='gray')
+    plt.title("Non-Maxima Suppression, threshold = 0.16")
+    plt.show()
+    twoC()
+
+
+def bb(x, y):
+    # Create an accumulator array defined by the resolution on ro and theta values. Calculate
+    # the sinusoid that represents all the lines that pass through some nonzero point.
+
+    ro = x * np.cos(y) + y * np.sin(y)
+
+
+def hugh(x, y):
+    image = np.zeros((300, 300))
+    thetas = np.linspace(-np.pi/2, np.pi/2, num=300)
+    rohs = x * np.cos(thetas) + y * np.sin(thetas)
+
+    for i,theta in enumerate(thetas):
+        image[rho_bin(theta), i]
+    print(np.max(rohs), np.min(rohs))
+    return image
+
+
+def threeA():
+    print("Exercise 3A")
+    plt.imshow(hugh(10, 10), cmap='gray')
+    plt.title("Hough Transform")
+    plt.show()
 
 
 def exercise3():
     print("Exercise 3")
-
-
-def exercise_2_b():
-    im = imread_gray("./images/museum.jpg")
-    derivative_magnitude, derivative_angles = gradient_magnitude(im, 1)
-
-    edges_non_maxima_suppression = np.copy(derivative_magnitude)
-    print(im.shape)
-
-    # iterate through all pixels
-    # skip the border so that edge cases are avoided
-    for i in range(1, im.shape[0] - 1):
-        for j in range(1, im.shape[1] - 1):
-            angle = derivative_angles[i][j]
-
-            if (np.pi / 8 <= angle <= 3 * np.pi / 8) or (
-                -7 * np.pi / 8 <= angle <= -5 * np.pi / 8
-            ):
-                if (
-                    derivative_magnitude[i - 1][j -
-                                                1] > derivative_magnitude[i][j]
-                    or derivative_magnitude[i + 1][j + 1] > derivative_magnitude[i][j]
-                ):
-                    edges_non_maxima_suppression[i][j] = 0
-
-            elif (3 * np.pi / 8 <= angle <= 5 * np.pi / 8) or (
-                -5 * np.pi / 8 <= angle <= -3 * np.pi / 8
-            ):
-                if (
-                    derivative_magnitude[i - 1][j] > derivative_magnitude[i][j]
-                    or derivative_magnitude[i + 1][j] > derivative_magnitude[i][j]
-                ):
-
-                    edges_non_maxima_suppression[i][j] = 0
-            elif (5 * np.pi / 8 <= angle <= 7 * np.pi / 8) or (
-                -3 * np.pi / 8 <= angle <= -np.pi / 8
-            ):
-                if (
-                    derivative_magnitude[i - 1][j +
-                                                1] > derivative_magnitude[i][j]
-                    or derivative_magnitude[i + 1][j - 1] > derivative_magnitude[i][j]
-                ):
-                    edges_non_maxima_suppression[i][j] = 0
-
-            else:
-                # [i][j-1] vs [i][j] vs [i][j+1]
-                if (
-                    derivative_magnitude[i][j - 1] > derivative_magnitude[i][j]
-                    or derivative_magnitude[i][j + 1] > derivative_magnitude[i][j]
-                ):
-                    edges_non_maxima_suppression[i][j] = 0
-
-            # dependent on the angle the neighbor is chosen
-
-    edges_non_maxima_suppression[edges_non_maxima_suppression < 0.16] = 0
-    edges_non_maxima_suppression[edges_non_maxima_suppression != 0] = 1
-    _, axes = plt.subplots(1, 1)
-
-    # axes[0].imshow(im, cmap="gray")
-    # axes[1].imshow(derivative_magnitude, cmap="gray")
-    # axes[2].imshow(derivative_angles, cmap="gray")
-    axes.imshow(edges_non_maxima_suppression, cmap="gray")
-
-    plt.show()
+    threeA()
 
 
 def main():
     print("Hello World!")
     # exercise1()
-    # exercise_2_b()
-    exercise2()
+    # exercise2()
+    exercise3()
 
 
 if __name__ == "__main__":

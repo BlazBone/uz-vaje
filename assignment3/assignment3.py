@@ -174,19 +174,20 @@ def exercise1():
     oneD()
 
 
-def fineedges(image, sigma, theta):
+def findedges(image, sigma, theta):
     image, _ = gradient_magnitude(image, sigma)
     image = np.where(image > theta, 1, 0)
     plt.imshow(image, cmap='gray')
     plt.title("Fine Edges, sigma = {}, theta = {}".format(sigma, theta))
     plt.show()
+    return image
 
 
 def twoA():
     print("Exercise 2A")
     thetas = np.arange(0, 0.5, 0.05)
     for theta in thetas:
-        fineedges(imread_gray("./images/museum.jpg"), 1, theta)
+        findedges(imread_gray("./images/museum.jpg"), 1, theta)
 
     # mybe 0.1 is a good value for theta
 
@@ -243,13 +244,14 @@ def twoB():
     """
 
     image = imread_gray("./images/museum.jpg")
-    I_mag, I_dir = gradient_magnitude(image, 0.5)
+    I_mag, I_dir = gradient_magnitude(image, sigma=1)
     print(np.max(I_dir), np.min(I_dir))
-
+    I_edges = findedges(image, 1, 0.16)
     plt.imshow(I_mag, cmap='gray')
     plt.title("Magnitude")
     plt.show()
-    I_mag_copy = np.copy(I_mag)
+
+    I_mag_copy = np.copy(I_edges)
     # walk through all pixels with indexes
 
     for i in range(1, I_mag.shape[0] - 1):
@@ -257,64 +259,36 @@ def twoB():
             # get the angle of the pixel
             angle = I_dir[i, j]
             # get the closest side
-            if angle < 0:
-                angle += math.pi
-            side = closest_side(angle)
             # get the magnitude of the pixel
             mag = I_mag[i, j]
             # get the magnitude of the pixels in the direction of the side
-            if side == -math.pi:
-                mag1 = I_mag[i - 1, j]
-                mag2 = I_mag[i + 1, j]
-            elif side == -3 * math.pi / 4:
-                mag1 = I_mag[i - 1, j - 1]
-                mag2 = I_mag[i + 1, j + 1]
-            elif side == -math.pi / 2:
-                mag1 = I_mag[i, j - 1]
-                mag2 = I_mag[i, j + 1]
-            elif side == -math.pi / 4:
-                mag1 = I_mag[i + 1, j - 1]
-                mag2 = I_mag[i - 1, j + 1]
-            elif side == 0:
-                mag1 = I_mag[i - 1, j]
-                mag2 = I_mag[i + 1, j]
-            elif side == math.pi / 4:
-                mag1 = I_mag[i - 1, j - 1]
-                mag2 = I_mag[i + 1, j + 1]
-            elif side == math.pi / 2:
-                mag1 = I_mag[i, j - 1]
-                mag2 = I_mag[i, j + 1]
-            elif side == 3 * math.pi / 4:
-                mag1 = I_mag[i - 1, j - 1]
-                mag2 = I_mag[i + 1, j + 1]
-            elif side == math.pi:
-                mag1 = I_mag[i - 1, j]
-                mag2 = I_mag[i + 1, j]
+            if (np.pi / 8 <= angle <= 3 * np.pi / 8) or (-7 * np.pi / 8 <= angle <= -5 * np.pi / 8):
+                mag1 = I_mag[i - 1][j - 1]
+                mag2 = I_mag[i + 1][j + 1]
 
-            # if the magnitude of the pixel is not the largest, set it to 0
+            elif (3 * np.pi / 8 <= angle <= 5 * np.pi / 8) or (-5 * np.pi / 8 <= angle <= -3 * np.pi / 8):
+                mag1 = I_mag[i - 1][j]
+                mag2 = I_mag[i + 1][j]
+            elif (5 * np.pi / 8 <= angle <= 7 * np.pi / 8) or (-3 * np.pi / 8 <= angle <= -np.pi / 8):
+                mag1 = I_mag[i - 1][j + 1]
+                mag2 = I_mag[i + 1][j - 1]
+            else:
+                mag1 = I_mag[i][j - 1]
+                mag2 = I_mag[i][j + 1]
+
             if mag < mag1 or mag < mag2:
                 I_mag_copy[i, j] = 0
+            # if the magnitude of the pixel is not the largest, set it to 0
 
+    I_mag_copy = np.where(I_mag_copy > 0.16, 1, 0)
     plt.imshow(I_mag_copy, cmap='gray')
-    plt.title("Non-maxima suppression")
-    plt.show()
-    print(I_mag)
-
-    plt.imshow(np.where(I_mag_copy < 0.16, 0, 1), cmap='gray')
-    plt.title("Non-maxima suppression")
-    plt.show()
-    plt.imshow(np.where(I_mag_copy < 0.10, 0, 1), cmap='gray')
-    plt.title("Non-maxima suppression")
-    plt.show()
-    plt.imshow(np.where(I_mag_copy < 0.14, 0, 1), cmap='gray')
-    plt.title("Non-maxima suppression")
     plt.show()
     # mybe 0.1 is a good value for theta
 
 
 def exercise2():
     print("Exercise 2")
-    # twoA()
+    twoA()
     twoB()
 
 
@@ -322,11 +296,75 @@ def exercise3():
     print("Exercise 3")
 
 
+def exercise_2_b():
+    im = imread_gray("./images/museum.jpg")
+    derivative_magnitude, derivative_angles = gradient_magnitude(im, 1)
+
+    edges_non_maxima_suppression = np.copy(derivative_magnitude)
+    print(im.shape)
+
+    # iterate through all pixels
+    # skip the border so that edge cases are avoided
+    for i in range(1, im.shape[0] - 1):
+        for j in range(1, im.shape[1] - 1):
+            angle = derivative_angles[i][j]
+
+            if (np.pi / 8 <= angle <= 3 * np.pi / 8) or (
+                -7 * np.pi / 8 <= angle <= -5 * np.pi / 8
+            ):
+                if (
+                    derivative_magnitude[i - 1][j -
+                                                1] > derivative_magnitude[i][j]
+                    or derivative_magnitude[i + 1][j + 1] > derivative_magnitude[i][j]
+                ):
+                    edges_non_maxima_suppression[i][j] = 0
+
+            elif (3 * np.pi / 8 <= angle <= 5 * np.pi / 8) or (
+                -5 * np.pi / 8 <= angle <= -3 * np.pi / 8
+            ):
+                if (
+                    derivative_magnitude[i - 1][j] > derivative_magnitude[i][j]
+                    or derivative_magnitude[i + 1][j] > derivative_magnitude[i][j]
+                ):
+
+                    edges_non_maxima_suppression[i][j] = 0
+            elif (5 * np.pi / 8 <= angle <= 7 * np.pi / 8) or (
+                -3 * np.pi / 8 <= angle <= -np.pi / 8
+            ):
+                if (
+                    derivative_magnitude[i - 1][j +
+                                                1] > derivative_magnitude[i][j]
+                    or derivative_magnitude[i + 1][j - 1] > derivative_magnitude[i][j]
+                ):
+                    edges_non_maxima_suppression[i][j] = 0
+
+            else:
+                # [i][j-1] vs [i][j] vs [i][j+1]
+                if (
+                    derivative_magnitude[i][j - 1] > derivative_magnitude[i][j]
+                    or derivative_magnitude[i][j + 1] > derivative_magnitude[i][j]
+                ):
+                    edges_non_maxima_suppression[i][j] = 0
+
+            # dependent on the angle the neighbor is chosen
+
+    edges_non_maxima_suppression[edges_non_maxima_suppression < 0.16] = 0
+    edges_non_maxima_suppression[edges_non_maxima_suppression != 0] = 1
+    _, axes = plt.subplots(1, 1)
+
+    # axes[0].imshow(im, cmap="gray")
+    # axes[1].imshow(derivative_magnitude, cmap="gray")
+    # axes[2].imshow(derivative_angles, cmap="gray")
+    axes.imshow(edges_non_maxima_suppression, cmap="gray")
+
+    plt.show()
+
+
 def main():
     print("Hello World!")
     # exercise1()
+    # exercise_2_b()
     exercise2()
-    # exercise3()
 
 
 if __name__ == "__main__":

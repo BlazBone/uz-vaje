@@ -101,7 +101,7 @@ def get_image_derivetive(image, sigma):
     I_y = cv2.filter2D(image, -1, gaus)
     I_y = cv2.filter2D(I_y, -1, gaus_dx.T)
 
-    return I_x/np.sum(I_x), I_y/np.sum(I_y)
+    return I_x, I_y
 
 
 def get_second_image_derivative(image, sigma):
@@ -120,14 +120,14 @@ def get_second_image_derivative(image, sigma):
     I_xy = cv2.filter2D(I_x, -1, gaus)
     I_xy = cv2.filter2D(I_xy, -1, gaus_dx.T)
 
-    return I_xx/np.sum(I_xx), I_yy/np.sum(I_yy), I_xy/np.sum(I_xy)
+    return I_xx, I_yy, I_xy
 
 
 def gradient_magnitude(image, sigma):
     I_x, I_y = get_image_derivetive(image, sigma)
     I_mag = np.sqrt(np.square(I_x) + np.square(I_y))
     I_dir = np.arctan2(I_y, I_x)
-    return I_mag/np.sum(I_mag), I_dir
+    return I_mag, I_dir
 
 
 def oneD(image_path="./images/museum.jpg"):
@@ -184,7 +184,7 @@ def fineedges(image, sigma, theta):
 
 def twoA():
     print("Exercise 2A")
-    thetas = np.arange(0, 0.3, 0.01)
+    thetas = np.arange(0, 0.5, 0.05)
     for theta in thetas:
         fineedges(imread_gray("./images/museum.jpg"), 1, theta)
 
@@ -255,8 +255,10 @@ def twoB():
     for i in range(1, I_mag.shape[0] - 1):
         for j in range(1, I_mag.shape[1] - 1):
             # get the angle of the pixel
-            angle = -I_dir[i, j]
+            angle = I_dir[i, j]
             # get the closest side
+            if angle < 0:
+                angle += math.pi
             side = closest_side(angle)
             # get the magnitude of the pixel
             mag = I_mag[i, j]
@@ -274,8 +276,8 @@ def twoB():
                 mag1 = I_mag[i + 1, j - 1]
                 mag2 = I_mag[i - 1, j + 1]
             elif side == 0:
-                mag1 = I_mag[i - 1, j - 1]
-                mag2 = I_mag[i + 1, j + 1]
+                mag1 = I_mag[i - 1, j]
+                mag2 = I_mag[i + 1, j]
             elif side == math.pi / 4:
                 mag1 = I_mag[i - 1, j - 1]
                 mag2 = I_mag[i + 1, j + 1]
@@ -291,25 +293,20 @@ def twoB():
 
             # if the magnitude of the pixel is not the largest, set it to 0
             if mag < mag1 or mag < mag2:
-                I_mag[i, j] = 0
+                I_mag_copy[i, j] = 0
 
-    plt.imshow(I_mag, cmap='gray')
+    plt.imshow(I_mag_copy, cmap='gray')
     plt.title("Non-maxima suppression")
     plt.show()
     print(I_mag)
-    print(np.max(I_mag), np.min(I_mag))
-    I_mag = I_mag/np.max(I_mag)
-    # I_mag = I_mag/np.min(I_mag)
-    # print(I_mag)
-    # print(np.max(I_mag), np.min(I_mag))
-    # test = np.arange(0, 1, 0.05)
-    # for t in test:
-    #     I_mag_temp = np.where(I_mag > t, 1, 0)
-    #     plt.imshow(I_mag_temp, cmap='gray')
-    #     plt.title("Non-maxima suppression, t = {}".format(t))
-    #     plt.show()
-    print(myOtsu(I_mag))
-    plt.imshow(np.where(I_mag < 0.17, 0, 1), cmap='gray')
+
+    plt.imshow(np.where(I_mag_copy < 0.16, 0, 1), cmap='gray')
+    plt.title("Non-maxima suppression")
+    plt.show()
+    plt.imshow(np.where(I_mag_copy < 0.10, 0, 1), cmap='gray')
+    plt.title("Non-maxima suppression")
+    plt.show()
+    plt.imshow(np.where(I_mag_copy < 0.14, 0, 1), cmap='gray')
     plt.title("Non-maxima suppression")
     plt.show()
     # mybe 0.1 is a good value for theta

@@ -323,19 +323,48 @@ def bb(x, y):
 
 def hugh(x, y):
     image = np.zeros((300, 300))
-    thetas = np.linspace(-np.pi/2, np.pi/2, num=300)
-    rohs = x * np.cos(thetas) + y * np.sin(thetas)
+    thetas = np.linspace(-np.pi/2, np.pi, num=300)
+    rohs = x * np.cos(thetas) + y * np.sin(thetas) + 150
 
-    for i,theta in enumerate(thetas):
-        image[rho_bin(theta), i]
-    print(np.max(rohs), np.min(rohs))
+    for i in range(300):
+        image[int(rohs[i]), i] += 1
     return image
+#     for i, theta in enumerate(thetas):
+#         image[rho_bin(theta), i]
+#     print(np.max(rohs), np.min(rohs))
+#     return image
+
+
+def hough_transform_a_point(x: int, y: int, n_bins: int):
+    theta_values = np.linspace(-np.pi/2, np.pi, n_bins)
+
+    cos_theta = np.cos(theta_values)
+    sin_theta = np.sin(theta_values)
+    accumlator = np.zeros((n_bins, n_bins))
+
+    for i in range(n_bins):
+        r = np.round(x * cos_theta[i] + y * sin_theta[i]) + n_bins/2
+        accumlator[int(r), i] += 1
+
+    return accumlator
 
 
 def threeA():
     print("Exercise 3A")
-    plt.imshow(hugh(10, 10), cmap='gray')
-    plt.title("Hough Transform")
+    a = hugh(10, 10)
+    b = hugh(30, 60)
+    c = hugh(50, 20)
+    d = hugh(80, 90)
+
+    fig, ax = plt.subplots(2, 2)
+    ax[0, 0].imshow(a, cmap='gray')
+    ax[0, 0].set_title("10, 10")
+    ax[0, 1].imshow(b, cmap='gray')
+    ax[0, 1].set_title("30, 60")
+    ax[1, 0].imshow(c, cmap='gray')
+    ax[1, 0].set_title("50, 20")
+    ax[1, 1].imshow(d, cmap='gray')
+    ax[1, 1].set_title("80, 90")
     plt.show()
 
 

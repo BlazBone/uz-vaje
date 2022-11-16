@@ -373,13 +373,10 @@ algorithm on the resulting edge maps.
     theta = np.linspace(-np.pi/2, np.pi/2, num=thetha_num_of_bins)
     rho_range = np.linspace(-diagonal, diagonal, num=ro_num_of_bins)
 
-    print(diagonal)
     nono_zero_indexes = np.where(image == 1)
     x_s, y_s = nono_zero_indexes[0], nono_zero_indexes[1]
     for x, y in zip(x_s, y_s):
         rohs = x * np.cos(theta) + y * np.sin(theta)
-        print(max(rohs), min(rohs))
-        print(len(rohs))
         binnes = np.digitize(rohs, rho_range)
         for j in range(thetha_num_of_bins):
             accumulator_matrix[int(binnes[j]), j] += 1
@@ -410,7 +407,7 @@ def threeB():
 def exercise3():
     print("Exercise 3")
     # threeA()
-    acc_matrix = threeB()
+    threeB()
 
 
 def main():

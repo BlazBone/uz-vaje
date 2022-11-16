@@ -329,24 +329,6 @@ def hugh(x, y):
     for i in range(300):
         image[int(rohs[i]), i] += 1
     return image
-#     for i, theta in enumerate(thetas):
-#         image[rho_bin(theta), i]
-#     print(np.max(rohs), np.min(rohs))
-#     return image
-
-
-def hough_transform_a_point(x: int, y: int, n_bins: int):
-    theta_values = np.linspace(-np.pi/2, np.pi, n_bins)
-
-    cos_theta = np.cos(theta_values)
-    sin_theta = np.sin(theta_values)
-    accumlator = np.zeros((n_bins, n_bins))
-
-    for i in range(n_bins):
-        r = np.round(x * cos_theta[i] + y * sin_theta[i]) + n_bins/2
-        accumlator[int(r), i] += 1
-
-    return accumlator
 
 
 def threeA():
@@ -357,6 +339,7 @@ def threeA():
     d = hugh(80, 90)
 
     fig, ax = plt.subplots(2, 2)
+    fig.suptitle('Hough Transform')
     ax[0, 0].imshow(a, cmap='gray')
     ax[0, 0].set_title("10, 10")
     ax[0, 1].imshow(b, cmap='gray')
@@ -368,9 +351,66 @@ def threeA():
     plt.show()
 
 
+def hough_find_lines(image, ro_num_of_bins, thetha_num_of_bins, threshold):
+    """
+Implement the function hough_find_lines that accepts a binary image, the number
+of bins for # and  (allow the possibility of them being different) and a threshold.
+Create an accumulator matrix A for the parameter space (; #). Parameter # is
+defined in the interval from 􀀀=2 to =2,  is defined on the interval from 􀀀D to
+D, where D is the length of the image diagonal. For each nonzero pixel in the image,
+generate a curve in the (; #) space by using the equation (7) for all possible values
+of # and increase the corresponding cells in A. Display the accumulator matrix. Test
+the method on your own synthetic images ((e.g. 100  100 black image, with two
+white pixels at (10; 10) and (10; 20)).
+Finally, test your function on two synthetic images oneline.png and rectangle.
+png. First, you should obtain an edge map for each image using either your
+function findedges or some inbuilt function. Run your implementation of the Hough
+algorithm on the resulting edge maps.
+    """
+
+    diagonal = int(np.sqrt(image.shape[0]**2 + image.shape[1]**2))
+    accumulator_matrix = np.zeros((ro_num_of_bins, thetha_num_of_bins))
+    theta = np.linspace(-np.pi/2, np.pi/2, num=thetha_num_of_bins)
+    rho_range = np.linspace(-diagonal, diagonal, num=ro_num_of_bins)
+
+    print(diagonal)
+    nono_zero_indexes = np.where(image == 1)
+    x_s, y_s = nono_zero_indexes[0], nono_zero_indexes[1]
+    for x, y in zip(x_s, y_s):
+        rohs = x * np.cos(theta) + y * np.sin(theta)
+        print(max(rohs), min(rohs))
+        print(len(rohs))
+        binnes = np.digitize(rohs, rho_range)
+        for j in range(thetha_num_of_bins):
+            accumulator_matrix[int(binnes[j]), j] += 1
+
+    return accumulator_matrix
+
+
+def threeB():
+    print("Exercise 3B")
+    images_names = ["./images/oneline.png", "./images/rectangle.png"]
+    test_image = np.zeros((100, 100)).astype(np.uint8)
+    test_image[10, 10] = 1
+    test_image[10, 20] = 1
+    acc_matrix = hough_find_lines(test_image, 200, 200, 1)
+
+    plt.imshow(acc_matrix)
+    plt.show()
+
+    for image_name in images_names:
+        image = imread_gray(image_name)
+        image = findedges(image, 1, 0.16)
+        acc_matrix = hough_find_lines(image, image.shape[0], image.shape[1], 1)
+        plt.imshow(acc_matrix)
+        plt.title(image_name)
+        plt.show()
+
+
 def exercise3():
     print("Exercise 3")
-    threeA()
+    # threeA()
+    acc_matrix = threeB()
 
 
 def main():

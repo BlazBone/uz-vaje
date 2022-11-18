@@ -354,7 +354,8 @@ def threeA():
 def hough_find_lines(image, ro_num_of_bins, thetha_num_of_bins, threshold):
     """
 Implement the function hough_find_lines that accepts a binary image, the number
-of bins for # and  (allow the possibility of them being different) and a threshold.
+# and  (allow the possibility of them being different) and a threshold.
+of bins for
 Create an accumulator matrix A for the parameter space (; #). Parameter # is
 defined in the interval from 􀀀=2 to =2,  is defined on the interval from 􀀀D to
 D, where D is the length of the image diagonal. For each nonzero pixel in the image,
@@ -376,12 +377,49 @@ algorithm on the resulting edge maps.
     nono_zero_indexes = np.where(image == 1)
     x_s, y_s = nono_zero_indexes[0], nono_zero_indexes[1]
     for x, y in zip(x_s, y_s):
-        rohs = x * np.cos(theta) + y * np.sin(theta)
+        rohs = np.round(x * np.cos(theta) + y * np.sin(theta).astype(np.int64))
         binnes = np.digitize(rohs, rho_range)
         for j in range(thetha_num_of_bins):
-            accumulator_matrix[int(binnes[j]), j] += 1
+            accumulator_matrix[binnes[j], j] += 1
 
     return accumulator_matrix
+
+
+def hough_find_lines2(image,
+                      n_bins_theta, n_bins_rho, treshold):
+    """"
+    Accepts: bw image with lines, n_bins_theta, n_bins_rho, treshold
+    Returns: image points above treshold transformed into hough space
+    """
+    image = image.copy()
+    image[image < treshold] = 0
+    theta_values = np.linspace(-np.pi/2, np.pi/2, n_bins_theta)
+    D = np.sqrt(image.shape[0]**2 + image.shape[1]**2)
+    rho_values = np.linspace(-D, D, n_bins_rho)
+    accumulator = np.zeros((n_bins_rho, n_bins_theta), dtype=np.uint64)
+
+    cos_precalculated = np.cos(theta_values)
+    sin_precalculated = np.sin(theta_values)
+
+    y_s, x_s = np.nonzero(image)
+
+    # Loop through all nonzero pixels above treshold
+    for i in range(len(y_s)):
+        x = x_s[i]
+        y = y_s[i]
+
+        # Precalculate rhos
+        rhos = np.round(x * cos_precalculated + y *
+                        sin_precalculated).astype(np.int64)
+
+        # Bin the rhos
+        binned = np.digitize(rhos, rho_values) - 1
+
+        # Add to accumulator
+        for theta in range(n_bins_theta):
+            accumulator[binned[theta], theta] += 1
+
+    return accumulator
 
 
 def threeB():
@@ -390,7 +428,7 @@ def threeB():
     test_image = np.zeros((100, 100)).astype(np.uint8)
     test_image[10, 10] = 1
     test_image[10, 20] = 1
-    acc_matrix = hough_find_lines(test_image, 200, 200, 1)
+    acc_matrix = hough_find_lines2(test_image, 200, 200, 1)
 
     plt.imshow(acc_matrix)
     plt.show()
@@ -398,16 +436,54 @@ def threeB():
     for image_name in images_names:
         image = imread_gray(image_name)
         image = findedges(image, 1, 0.16)
-        acc_matrix = hough_find_lines(image, image.shape[0], image.shape[1], 1)
+        acc_matrix = hough_find_lines2(
+            image, 200, 200, 1)
         plt.imshow(acc_matrix)
         plt.title(image_name)
         plt.show()
+
+
+def non_maxima_box(image):
+    # loop through image check 8 neigbourhoodge
+    ima = image.copy()
+    for i in range(1, len(image)-1):
+        for j in range(1, len(image[0])-1):
+            neigbours = image[-1+i:i+1, j-1:j+1]
+            neigbours[1, 1] = 0
+            if image[i, j] != np.max(neigbours):
+                ima[i, j] == 0
+    return image
+
+
+def threeC():
+    test_image = np.zeros((100, 100)).astype(np.uint8)
+    test_image[10, 10] = 1
+    test_image[10, 20] = 1
+    acc_matrix = hough_find_lines(test_image, 200, 200, 1)
+    res = non_maxima_box(acc_matrix)
+    plt.imshow(res)
+    plt.show()
+
+
+def threeD():
+    synthetic = np.zeros((100, 100)).astype(np.uint8)
+    oneline = findedges(imread_gray("./images/oneline.png"), 1, 0.16)
+    rectangle = findedges(imread_gray("./images/rectangle.png"), 1, 0.16)
+    images = [synthetic, oneline, rectangle]
+
+    for image in images:
+        acc_matrix = hough_find_lines(image, 200, 200, 0.16)
+        points = non_maxima_box(acc_matrix)
+        points = np.where(points == 0, 0, 1)
+        print(np.where(points == 1))
 
 
 def exercise3():
     print("Exercise 3")
     # threeA()
     threeB()
+    # threeC()
+    threeD()
 
 
 def main():

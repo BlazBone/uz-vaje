@@ -4,7 +4,6 @@ from a3_utils import *
 import cv2 as cv2
 from UZ_utils import *
 import math
-from tqdm import tqdm
 import os
 
 
@@ -204,8 +203,6 @@ def blockshaped(arr, nrows, ncols):
 
 
 def gradiant_magnitude_hist(image):
-    print("mybe it works")
-    print(image.shape)
     # split image in 8 block for some reason
     I_mag, I_dir = gradient_magnitude(image, sigma=1)
     magBlock = blockshaped(I_mag, 8, 8)
@@ -225,9 +222,6 @@ def gradiant_magnitude_hist(image):
         for j in range(8):
             temp_hist[dir_bin[j] - 1] += temp_mag[j]
             # da z druge
-        # dir is in range of -pi to pi
-        # add temp hist to hist
-        # hist.append(temp_hist)
         hist.extend(temp_hist/np.sum(temp_hist))
     return hist/np.sum(hist)
 
@@ -238,7 +232,6 @@ def oneE():
     # its nicer this way in a notebook
     ##############################
     directory = "./dataset/"
-    numbins = 8
     ##############################
 
     histograms = dict()
@@ -262,7 +255,6 @@ def oneE():
         inter.append((k, intersection(hist, v)))
         chi.append((k, chi_square(hist, v)))
 
-    hell_whole = hell.copy()
     chi.sort(key=lambda x: x[1])
     hell.sort(key=lambda x: x[1])
     l2.sort(key=lambda x: x[1])
@@ -291,29 +283,20 @@ def oneE():
     plt.show()
 
 
-def exercise1():
-    print("Exercise 1")
-    oneB()
-    oneC()
-    oneD()
-    oneE()
-
-
 def findedges(image, sigma, theta):
     image, _ = gradient_magnitude(image, sigma)
     image = np.where(image > theta, 1, 0)
-    # plt.imshow(image, cmap='gray')
-    # plt.title("Fine Edges, sigma = {}, theta = {}".format(sigma, theta))
-    # plt.show()
     return image
 
 
 def twoA():
     print("Exercise 2A")
-    thetas = np.arange(0, 0.5, 0.05)
+    thetas = np.arange(0.02, 0.3, 0.05)
     for theta in thetas:
-        findedges(imread_gray("./images/museum.jpg"), 1, theta)
-
+        im = findedges(imread_gray("./images/museum.jpg"), 1, theta)
+        plt.imshow(im, cmap='gray')
+        plt.title("theta = " + str(theta))
+        plt.show()
     # mybe 0.1 is a good value for theta
 
 
@@ -369,10 +352,6 @@ def twoB(image):
     """
 
     I_mag, I_dir = gradient_magnitude(image, sigma=1)
-    # plt.imshow(I_mag, cmap='gray')
-    # plt.title("Magnitude")
-    # plt.show()
-
     I_mag_copy = np.copy(I_mag)
     # walk through all pixels with indexes
 
@@ -402,15 +381,13 @@ def twoB(image):
                 I_mag_copy[i, j] = 0
             # if the magnitude of the pixel is not the largest, set it to 0
 
-    # I_mag_copy = np.where(I_mag_copy > 0.16, 1, 0)
     return I_mag_copy
-    # mybe 0.1 is a good value for theta
 
 
 def twoC():
     t_low = 0.08
     t_high = 0.50
-    image = np.where(twoB() < t_low, 0, 1)
+    image = np.where(twoB(imread_gray("./images/museum.jpg")) < t_low, 0, 1)
     image = image.astype(np.uint8)
     test, labels, _, _ = cv2.connectedComponentsWithStats(
         image, connectivity=8, ltype=cv2.CV_32S)
@@ -425,44 +402,6 @@ def twoC():
     plt.imshow(image, cmap='gray')
     plt.title("Canny Edge Detection")
     plt.show()
-
-
-def exercise2():
-    print("Exercise 2")
-    twoA()
-    NMS = twoB(imread_gray("./images/museum.jpg"))
-    NMS = np.where(NMS > 0.16, 1, 0)
-    plt.imshow(NMS, cmap='gray')
-    plt.title("Non-Maxima Suppression, threshold = 0.16")
-    plt.show()
-    twoC()
-
-
-def canny_edge_detection(image, sigma, t_low=0.4, t_high=0.16):
-    NMS = twoB(image)
-    NMS = NMS / np.max(NMS)
-    plt.imshow(NMS, cmap='gray')
-    plt.show()
-    t_low = 0.3
-    NMS[NMS < t_low] = 0
-    NMS[NMS >= t_low] = 1
-    # plt.imshow(NMS, cmap='gray')
-    # plt.show()
-
-    NMS = NMS.astype(np.uint8)
-    test, labels, _, _ = cv2.connectedComponentsWithStats(
-        NMS, connectivity=8, ltype=cv2.CV_32S)
-
-    for i in range(test):
-        if((np.greater(NMS[labels == i], t_high).any())):
-            NMS[labels == i] = 1
-        else:
-            NMS[labels == i] = 0
-    # for i in range(1, num_labels):
-    #     idxs = np.where(image[labels == i] > t_high)
-    #     if idxs != []:
-    #         new_image[labels == i] = 1
-    return NMS
 
 
 def hugh(x, y):
@@ -500,13 +439,14 @@ def hough_find_lines(image,  thetha_num_of_bins, ro_num_of_bins, threshold):
     image = np.where(image < threshold, 0, image)
     # prepare values
     diagonal = int(np.sqrt(image.shape[0]**2 + image.shape[1]**2))
-    accumulator_matrix = np.zeros(
+    accMatrix = np.zeros(
         (ro_num_of_bins, thetha_num_of_bins), dtype=np.uint64)
     theta = np.linspace(-np.pi/2, np.pi/2, num=thetha_num_of_bins)
     rho_range = np.linspace(-diagonal, diagonal, num=ro_num_of_bins)
     # get indexes of non zero pixels
     y_s, x_s = np.nonzero(image)
     # hvala prijatelj za speed hack
+    # update still slowaf
     cos = np.cos(theta)
     sin = np.sin(theta)
 
@@ -515,9 +455,9 @@ def hough_find_lines(image,  thetha_num_of_bins, ro_num_of_bins, threshold):
         binnes = np.digitize(rohs, rho_range) - 1  # outofv
 
         for j in range(thetha_num_of_bins):
-            accumulator_matrix[binnes[j], j] += 1
+            accMatrix[binnes[j], j] += 1
 
-    return accumulator_matrix
+    return accMatrix
 
 
 def threeB():
@@ -545,35 +485,8 @@ def non_maxima_box(image):
     for i in range(1, len(image)-1):
         for j in range(1, len(image[0])-1):
             neigbours = image[-1+i:i+2, j-1:j+2]
-            # neigbours[1, 1] = 0
             if image[i, j] < np.max(neigbours):
                 image[i, j] = 0
-    return image
-
-
-def nonmaxima_suppression_box(image):
-    """
-    Accepts: image with sinusoids in hough space
-    Returns: image with sinusoids
-    """
-    image = image.copy()
-
-    def get_neighbours() -> list[tuple[int, int]]:
-        neighbours = []
-        for i in range(-1, 2):
-            for j in range(-1, 2):
-                if i != 0 or j != 0:
-                    neighbours.append((i, j))
-        return neighbours
-
-    neighbours = get_neighbours()
-
-    for y in range(1, image.shape[0]-1):
-        for x in range(1, image.shape[1]-1):
-            neigbours = image[-1+y:y+1, x-1:x+1]
-            # neigbours[1, 1] = 0
-            if image[y, x] < np.max(neigbours):
-                image[y, x] = 0
     return image
 
 
@@ -582,7 +495,7 @@ def threeC():
     test_image[10, 10] = 1
     test_image[10, 20] = 1
     acc_matrix = hough_find_lines(test_image, 200, 200, 0.16)
-    res = nonmaxima_suppression_box(acc_matrix)
+    res = non_maxima_box(acc_matrix)
     plt.imshow(res)
     plt.title("non maxima box")
     plt.show()
@@ -607,10 +520,8 @@ def threeD():
     synthetic = np.zeros((100, 100)).astype(np.uint8)
     synthetic[10, 10] = 1
     synthetic[10, 20] = 1
-    # oneline = findedges(imread_gray("./images/oneline.png"), 1, 0.16)
     oneline = cv2.Canny(cv2.imread("./images/oneline.png",
                                    cv2.IMREAD_GRAYSCALE), 0.16, 1)
-    # rectangle = findedges(imread_gray("./images/rectangle.png"), 1, 0.16)
     rectangle = cv2.Canny(cv2.imread(
         "./images/rectangle.png", cv2.IMREAD_GRAYSCALE), 0.16, 1)
     images = [synthetic, oneline, rectangle]
@@ -622,49 +533,10 @@ def threeD():
         plt.show()
         points = np.where(points > np.max(points)*0.3, 1, 0)
         twos = get_pairs(image, points, 200, 200)
-        print(twos)
         plt.imshow(image)
         for t, r in twos:
             draw_line(r, t, image.shape[0], image.shape[1])
         plt.show()
-        print(np.where(points == 1))
-
-
-def hough_find_lines2(image, n_bins_theta, n_bins_rho, treshold):
-    """"
-    Accepts: bw image with lines, n_bins_theta, n_bins_rho, treshold
-    Returns: image points above treshold transformed into hough space
-    """
-
-    image = image.copy()
-    image[image < treshold] = 0
-    theta_values = np.linspace(-np.pi/2, np.pi/2, n_bins_theta)
-    D = np.sqrt(image.shape[0]**2 + image.shape[1]**2)
-    rho_values = np.linspace(-D, D, n_bins_rho)
-    accumulator = np.zeros((n_bins_rho, n_bins_theta), dtype=np.uint64)
-
-    cos_precalculated = np.cos(theta_values)
-    sin_precalculated = np.sin(theta_values)
-
-    y_s, x_s = np.nonzero(image)
-
-    # Loop through all nonzero pixels above treshold
-    for i in tqdm(range(len(y_s)), desc='Hough transform'):
-        x = x_s[i]
-        y = y_s[i]
-
-        # Precalculate rhos
-        rhos = np.round(x * cos_precalculated + y *
-                        sin_precalculated).astype(np.int64)
-
-        # Bin the rhos
-        binned = np.digitize(rhos, rho_values) - 1
-
-        # Add to accumulator
-        for theta in range(n_bins_theta):
-            accumulator[binned[theta], theta] += 1
-
-    return accumulator
 
 
 def getNbestParirs(image, hugh, t_bins, r_bins, n):
@@ -684,20 +556,22 @@ def threeE():
     brick_edge = findedges(brick, 1, 0.16)
     pier_edge = findedges(pier, 1, 0.06)
 
-    print(brick_edge)
-    print("we are here")
     brick_hugh_matrix = hough_find_lines(brick_edge, 200, 200, 0.16)
     pier_hugh_matrix = hough_find_lines(pier_edge, 360, 360, 0.16)
-    print("hugh lines")
+
     brick_hugh_nonmaxima = non_maxima_box(brick_hugh_matrix)
     plt.imshow(brick_hugh_matrix)
     plt.show()
+    plt.imshow(pier_hugh_matrix)
+    plt.show()
     pier_hugh_nonmaxima = non_maxima_box(pier_hugh_matrix)
-    print("non maxima")
+
     brick_hug_10 = np.zeros_like(brick_hugh_nonmaxima)
     pier_hug_10 = np.zeros_like(pier_hugh_nonmaxima)
+
     best_points_brick = []
     best_points_pier = []
+
     for i in range(10):
         best_points_brick.append(np.unravel_index(
             np.argmax(brick_hugh_matrix), brick_hugh_matrix.shape))
@@ -707,9 +581,10 @@ def threeE():
             np.argmax(pier_hugh_matrix), pier_hugh_matrix.shape))
         pier_hugh_matrix[best_points_pier[-1]] = 0
         pier_hug_10[best_points_pier[-1]] = 1
-    print("hej")
+
     a = get_pairs(brick, brick_hug_10, 360, 360)
     plt.imshow(brick_clr)
+
     for t, r in a:
         draw_line(r, t, brick_clr.shape[0], brick_clr.shape[1])
     plt.show()
@@ -718,28 +593,42 @@ def threeE():
     for t, r in get_pairs(pier, pier_hug_10, 360, 360):
         draw_line(r, t, pier_clr.shape[0], pier_clr.shape[1])
     plt.show()
-
     print("hola amigos")
+
+
+def exercise1():
+    print("Exercise 1")
+    oneB()
+    oneC()
+    oneD()
+    oneE()
+
+
+def exercise2():
+    print("Exercise 2")
+    twoA()
+    NMS = twoB(imread_gray("./images/museum.jpg"))
+    NMS = np.where(NMS > 0.16, 1, 0)
+    plt.imshow(NMS, cmap='gray')
+    plt.title("Non-Maxima Suppression, threshold = 0.16")
+    plt.show()
+    twoC()
 
 
 def exercise3():
     print("Exercise 3")
-    # threeA()
-    # threeB()
-    # threeC()
-    # threeD()
-    # threeE()
+    threeA()
+    threeB()
+    threeC()
+    threeD()
+    threeE()
 
 
 def main():
-    # im = canny_edge_detection(imread_gray("./images/bricks.jpg"), 1, 0.05, 0.5)
-    # plt.imshow(im)
-    # plt.show()
     print("Hello World!")
-    # exercise1()
-    # exercise2()
-    # exercise3()
-    oneE()
+    exercise1()
+    exercise2()
+    exercise3()
 
 
 if __name__ == "__main__":

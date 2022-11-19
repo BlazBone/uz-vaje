@@ -177,9 +177,9 @@ def exercise1():
 def findedges(image, sigma, theta):
     image, _ = gradient_magnitude(image, sigma)
     image = np.where(image > theta, 1, 0)
-    plt.imshow(image, cmap='gray')
-    plt.title("Fine Edges, sigma = {}, theta = {}".format(sigma, theta))
-    plt.show()
+    # plt.imshow(image, cmap='gray')
+    # plt.title("Fine Edges, sigma = {}, theta = {}".format(sigma, theta))
+    # plt.show()
     return image
 
 
@@ -230,7 +230,7 @@ def myOtsu(I):
     return min_var_threshold
 
 
-def twoB():
+def twoB(image):
     print("Exercise 2B")
     """
     Using magnitude produces only a first approximation of detected edges. Unfortunately,
@@ -243,11 +243,10 @@ def twoB():
     interpolating to more accuracy is not required.
     """
 
-    image = imread_gray("./images/museum.jpg")
     I_mag, I_dir = gradient_magnitude(image, sigma=1)
-    plt.imshow(I_mag, cmap='gray')
-    plt.title("Magnitude")
-    plt.show()
+    # plt.imshow(I_mag, cmap='gray')
+    # plt.title("Magnitude")
+    # plt.show()
 
     I_mag_copy = np.copy(I_mag)
     # walk through all pixels with indexes
@@ -306,7 +305,7 @@ def twoC():
 def exercise2():
     print("Exercise 2")
     twoA()
-    NMS = twoB()
+    NMS = twoB(imread_gray("./images/museum.jpg"))
     NMS = np.where(NMS > 0.16, 1, 0)
     plt.imshow(NMS, cmap='gray')
     plt.title("Non-Maxima Suppression, threshold = 0.16")
@@ -314,11 +313,31 @@ def exercise2():
     twoC()
 
 
-def bb(x, y):
-    # Create an accumulator array defined by the resolution on ro and theta values. Calculate
-    # the sinusoid that represents all the lines that pass through some nonzero point.
+def canny_edge_detection(image, sigma, t_low=0.4, t_high=0.16):
+    NMS = twoB(image)
+    NMS = NMS / np.max(NMS)
+    plt.imshow(NMS, cmap='gray')
+    plt.show()
+    t_low = 0.3
+    NMS[NMS < t_low] = 0
+    NMS[NMS >= t_low] = 1
+    # plt.imshow(NMS, cmap='gray')
+    # plt.show()
 
-    ro = x * np.cos(y) + y * np.sin(y)
+    NMS = NMS.astype(np.uint8)
+    test, labels, _, _ = cv2.connectedComponentsWithStats(
+        NMS, connectivity=8, ltype=cv2.CV_32S)
+
+    for i in range(test):
+        if((np.greater(NMS[labels == i], t_high).any())):
+            NMS[labels == i] = 1
+        else:
+            NMS[labels == i] = 0
+    # for i in range(1, num_labels):
+    #     idxs = np.where(image[labels == i] > t_high)
+    #     if idxs != []:
+    #         new_image[labels == i] = 1
+    return NMS
 
 
 def hugh(x, y):
@@ -351,75 +370,29 @@ def threeA():
     plt.show()
 
 
-def hough_find_lines(image, ro_num_of_bins, thetha_num_of_bins, threshold):
-    """
-Implement the function hough_find_lines that accepts a binary image, the number
-# and  (allow the possibility of them being different) and a threshold.
-of bins for
-Create an accumulator matrix A for the parameter space (; #). Parameter # is
-defined in the interval from 􀀀=2 to =2,  is defined on the interval from 􀀀D to
-D, where D is the length of the image diagonal. For each nonzero pixel in the image,
-generate a curve in the (; #) space by using the equation (7) for all possible values
-of # and increase the corresponding cells in A. Display the accumulator matrix. Test
-the method on your own synthetic images ((e.g. 100  100 black image, with two
-white pixels at (10; 10) and (10; 20)).
-Finally, test your function on two synthetic images oneline.png and rectangle.
-png. First, you should obtain an edge map for each image using either your
-function findedges or some inbuilt function. Run your implementation of the Hough
-algorithm on the resulting edge maps.
-    """
-
+def hough_find_lines(image,  thetha_num_of_bins, ro_num_of_bins, threshold):
+    # treshold
+    image = np.where(image < threshold, 0, image)
+    # prepare values
     diagonal = int(np.sqrt(image.shape[0]**2 + image.shape[1]**2))
-    accumulator_matrix = np.zeros((ro_num_of_bins, thetha_num_of_bins))
+    accumulator_matrix = np.zeros(
+        (ro_num_of_bins, thetha_num_of_bins), dtype=np.uint64)
     theta = np.linspace(-np.pi/2, np.pi/2, num=thetha_num_of_bins)
     rho_range = np.linspace(-diagonal, diagonal, num=ro_num_of_bins)
+    # get indexes of non zero pixels
+    y_s, x_s = np.nonzero(image)
+    # hvala prijatelj za speed hack
+    cos = np.cos(theta)
+    sin = np.sin(theta)
 
-    nono_zero_indexes = np.where(image == 1)
-    x_s, y_s = nono_zero_indexes[0], nono_zero_indexes[1]
     for x, y in zip(x_s, y_s):
-        rohs = np.round(x * np.cos(theta) + y * np.sin(theta).astype(np.int64))
-        binnes = np.digitize(rohs, rho_range)
+        rohs = np.round(x * cos + y * sin).astype(np.int32)
+        binnes = np.digitize(rohs, rho_range) - 1  # outofv
+
         for j in range(thetha_num_of_bins):
             accumulator_matrix[binnes[j], j] += 1
 
     return accumulator_matrix
-
-
-def hough_find_lines2(image,
-                      n_bins_theta, n_bins_rho, treshold):
-    """"
-    Accepts: bw image with lines, n_bins_theta, n_bins_rho, treshold
-    Returns: image points above treshold transformed into hough space
-    """
-    image = image.copy()
-    image[image < treshold] = 0
-    theta_values = np.linspace(-np.pi/2, np.pi/2, n_bins_theta)
-    D = np.sqrt(image.shape[0]**2 + image.shape[1]**2)
-    rho_values = np.linspace(-D, D, n_bins_rho)
-    accumulator = np.zeros((n_bins_rho, n_bins_theta), dtype=np.uint64)
-
-    cos_precalculated = np.cos(theta_values)
-    sin_precalculated = np.sin(theta_values)
-
-    y_s, x_s = np.nonzero(image)
-
-    # Loop through all nonzero pixels above treshold
-    for i in range(len(y_s)):
-        x = x_s[i]
-        y = y_s[i]
-
-        # Precalculate rhos
-        rhos = np.round(x * cos_precalculated + y *
-                        sin_precalculated).astype(np.int64)
-
-        # Bin the rhos
-        binned = np.digitize(rhos, rho_values) - 1
-
-        # Add to accumulator
-        for theta in range(n_bins_theta):
-            accumulator[binned[theta], theta] += 1
-
-    return accumulator
 
 
 def threeB():
@@ -428,7 +401,7 @@ def threeB():
     test_image = np.zeros((100, 100)).astype(np.uint8)
     test_image[10, 10] = 1
     test_image[10, 20] = 1
-    acc_matrix = hough_find_lines2(test_image, 200, 200, 1)
+    acc_matrix = hough_find_lines(test_image, 200, 200, 0.16)
 
     plt.imshow(acc_matrix)
     plt.show()
@@ -436,22 +409,46 @@ def threeB():
     for image_name in images_names:
         image = imread_gray(image_name)
         image = findedges(image, 1, 0.16)
-        acc_matrix = hough_find_lines2(
-            image, 200, 200, 1)
+        acc_matrix = hough_find_lines(
+            image, 200, 200, 0.16)
         plt.imshow(acc_matrix)
         plt.title(image_name)
         plt.show()
 
 
 def non_maxima_box(image):
-    # loop through image check 8 neigbourhoodge
-    ima = image.copy()
     for i in range(1, len(image)-1):
         for j in range(1, len(image[0])-1):
-            neigbours = image[-1+i:i+1, j-1:j+1]
-            neigbours[1, 1] = 0
-            if image[i, j] != np.max(neigbours):
-                ima[i, j] == 0
+            neigbours = image[-1+i:i+2, j-1:j+2]
+            # neigbours[1, 1] = 0
+            if image[i, j] < np.max(neigbours):
+                image[i, j] = 0
+    return image
+
+
+def nonmaxima_suppression_box(image):
+    """
+    Accepts: image with sinusoids in hough space
+    Returns: image with sinusoids
+    """
+    image = image.copy()
+
+    def get_neighbours() -> list[tuple[int, int]]:
+        neighbours = []
+        for i in range(-1, 2):
+            for j in range(-1, 2):
+                if i != 0 or j != 0:
+                    neighbours.append((i, j))
+        return neighbours
+
+    neighbours = get_neighbours()
+
+    for y in range(1, image.shape[0]-1):
+        for x in range(1, image.shape[1]-1):
+            neigbours = image[-1+y:y+1, x-1:x+1]
+            # neigbours[1, 1] = 0
+            if image[y, x] < np.max(neigbours):
+                image[y, x] = 0
     return image
 
 
@@ -459,34 +456,67 @@ def threeC():
     test_image = np.zeros((100, 100)).astype(np.uint8)
     test_image[10, 10] = 1
     test_image[10, 20] = 1
-    acc_matrix = hough_find_lines(test_image, 200, 200, 1)
-    res = non_maxima_box(acc_matrix)
+    acc_matrix = hough_find_lines(test_image, 200, 200, 0.16)
+    res = nonmaxima_suppression_box(acc_matrix)
     plt.imshow(res)
+    plt.title("non maxima box")
     plt.show()
+
+
+def get_pairs(image, hugh, t_bins, r_bins):
+    diagonal = int(np.sqrt(image.shape[0]**2 + image.shape[1]**2))
+    theta = np.linspace(-np.pi/2, np.pi/2, num=200)
+    rho_range = np.linspace(-diagonal, diagonal, num=200)
+
+    y_s, x_s = np.nonzero(hugh)
+
+    twos = []
+    for x, y in zip(x_s, y_s):
+        t = theta[x]
+        r = rho_range[y]
+        twos.append((t, r))
+    return twos
 
 
 def threeD():
     synthetic = np.zeros((100, 100)).astype(np.uint8)
-    oneline = findedges(imread_gray("./images/oneline.png"), 1, 0.16)
-    rectangle = findedges(imread_gray("./images/rectangle.png"), 1, 0.16)
+    synthetic[10, 10] = 1
+    synthetic[10, 20] = 1
+    # oneline = findedges(imread_gray("./images/oneline.png"), 1, 0.16)
+    oneline = cv2.Canny(cv2.imread("./images/oneline.png",
+                                   cv2.IMREAD_GRAYSCALE), 0.16, 1)
+    # rectangle = findedges(imread_gray("./images/rectangle.png"), 1, 0.16)
+    rectangle = cv2.Canny(cv2.imread(
+        "./images/rectangle.png", cv2.IMREAD_GRAYSCALE), 0.16, 1)
     images = [synthetic, oneline, rectangle]
 
     for image in images:
-        acc_matrix = hough_find_lines(image, 200, 200, 0.16)
+        acc_matrix = hough_find_lines(image, 200, 200, 0.4)
         points = non_maxima_box(acc_matrix)
-        points = np.where(points == 0, 0, 1)
+        plt.imshow(points)
+        plt.show()
+        points = np.where(points > np.max(points)*0.3, 1, 0)
+        twos = get_pairs(image, points, 200, 200)
+        print(twos)
+        plt.imshow(image)
+        for t, r in twos:
+            draw_line(r, t, image.shape[0], image.shape[1])
+        plt.show()
         print(np.where(points == 1))
 
 
 def exercise3():
     print("Exercise 3")
     # threeA()
-    threeB()
+    # threeB()
     # threeC()
     threeD()
 
 
 def main():
+    # im = canny_edge_detection(imread_gray("./images/bricks.jpg"), 1, 0.05, 0.5)
+    # plt.imshow(im)
+    # plt.show()
     print("Hello World!")
     # exercise1()
     # exercise2()

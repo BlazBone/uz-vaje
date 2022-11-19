@@ -4,6 +4,8 @@ from a3_utils import *
 import cv2 as cv2
 from UZ_utils import *
 import math
+from tqdm import tqdm
+import os
 
 
 def gauss_kernel(sigma):
@@ -167,11 +169,134 @@ def oneD(image_path="./images/museum.jpg"):
     print("Exercise 1D")
 
 
+def euclidean_distance(x, y):
+    return np.sqrt((np.sum(np.square(x - y))))
+
+
+def chi_square(x, y):
+    return 0.5 * np.sum(np.square(x - y) / (x + y + 1e-6))
+
+
+def intersection(x, y):
+    return 1 - np.sum(np.minimum(x, y))
+
+
+def helliger(x, y):
+    return np.sqrt(0.5 * np.sum(np.square(np.sqrt(x) - np.sqrt(y))))
+
+# https://stackoverflow.com/questions/16856788/slice-2d-array-into-smaller-2d-arrays
+
+
+def blockshaped(arr, nrows, ncols):
+    """
+    Return an array of shape (n, nrows, ncols) where
+    n * nrows * ncols = arr.size
+
+    If arr is a 2D array, the returned array should look like n subblocks with
+    each subblock preserving the "physical" layout of arr.
+    """
+    h, w = arr.shape
+    assert h % nrows == 0, f"{h} rows is not evenly divisible by {nrows}"
+    assert w % ncols == 0, f"{w} cols is not evenly divisible by {ncols}"
+    return (arr.reshape(h//nrows, nrows, -1, ncols)
+               .swapaxes(1, 2)
+               .reshape(-1, nrows, ncols))
+
+
+def gradiant_magnitude_hist(image):
+    print("mybe it works")
+    print(image.shape)
+    # split image in 8 block for some reason
+    I_mag, I_dir = gradient_magnitude(image, sigma=1)
+    magBlock = blockshaped(I_mag, 8, 8)
+    dirBlock = blockshaped(I_dir, 8, 8)
+
+    dirRAnge = np.linspace(-np.pi, np.pi, 8)  # 8 sosedi
+
+    hist = []
+    # walk throuigh every block
+    for i in range(magBlock.shape[0]):
+        temp_mag = magBlock[i]
+        temp_dir = dirBlock[i]
+
+        temp_hist = np.zeros(8)
+        # bin direction
+        dir_bin = np.digitize(temp_dir, dirRAnge)
+        for j in range(8):
+            temp_hist[dir_bin[j] - 1] += temp_mag[j]
+            # da z druge
+        # dir is in range of -pi to pi
+        # add temp hist to hist
+        # hist.append(temp_hist)
+        hist.extend(temp_hist/np.sum(temp_hist))
+    return hist/np.sum(hist)
+
+
+def oneE():
+    # simmilar to assigment 2
+    # Could be  fucntion parameters
+    # its nicer this way in a notebook
+    ##############################
+    directory = "./dataset/"
+    numbins = 8
+    ##############################
+
+    histograms = dict()
+    for filename in os.listdir(directory):
+        # color doesnt matter
+        I_temp = imread_gray(directory + filename)
+        histograms[filename] = gradiant_magnitude_hist(I_temp)
+
+    # image_name, hist = random.choice(list(histograms.items()))
+    image_name = "object_05_4.png"
+    hist = histograms[image_name]
+
+    l2 = []
+    hell = []
+    inter = []
+    chi = []
+
+    for k, v in histograms.items():
+        l2.append((k, euclidean_distance(hist, v)))
+        hell.append((k, helliger(hist, v)))
+        inter.append((k, intersection(hist, v)))
+        chi.append((k, chi_square(hist, v)))
+
+    hell_whole = hell.copy()
+    chi.sort(key=lambda x: x[1])
+    hell.sort(key=lambda x: x[1])
+    l2.sort(key=lambda x: x[1])
+    inter.sort(key=lambda x: x[1])
+
+    chi = chi[:6]
+    hell = hell[:6]
+    l2 = l2[:6]
+    inter = inter[:6]
+
+    every_distance = [(chi, "chi"), (hell, "hell"),
+                      (l2, "l2"), (inter, "inter")]
+
+    for i, (distance, name_of_distance) in enumerate(every_distance):
+        a, two = plt.subplots(2, 6)
+        a.suptitle(name_of_distance)
+
+        for j, (name, hist) in enumerate(distance):
+            two[0, j].imshow(imread(directory + name))
+            two[0, j].set(title=name[5:])
+
+            two[1, j].bar(height=histograms[name], x=range(
+                len(histograms[name])), width=5)
+            two[1, j].set(title=str(hist)[:5])
+
+    plt.show()
+
+
 def exercise1():
     print("Exercise 1")
     oneB()
     oneC()
     oneD()
+    oneE()
 
 
 def findedges(image, sigma, theta):
@@ -465,8 +590,8 @@ def threeC():
 
 def get_pairs(image, hugh, t_bins, r_bins):
     diagonal = int(np.sqrt(image.shape[0]**2 + image.shape[1]**2))
-    theta = np.linspace(-np.pi/2, np.pi/2, num=200)
-    rho_range = np.linspace(-diagonal, diagonal, num=200)
+    theta = np.linspace(-np.pi/2, np.pi/2, num=t_bins)
+    rho_range = np.linspace(-diagonal, diagonal, num=r_bins)
 
     y_s, x_s = np.nonzero(hugh)
 
@@ -505,12 +630,105 @@ def threeD():
         print(np.where(points == 1))
 
 
+def hough_find_lines2(image, n_bins_theta, n_bins_rho, treshold):
+    """"
+    Accepts: bw image with lines, n_bins_theta, n_bins_rho, treshold
+    Returns: image points above treshold transformed into hough space
+    """
+
+    image = image.copy()
+    image[image < treshold] = 0
+    theta_values = np.linspace(-np.pi/2, np.pi/2, n_bins_theta)
+    D = np.sqrt(image.shape[0]**2 + image.shape[1]**2)
+    rho_values = np.linspace(-D, D, n_bins_rho)
+    accumulator = np.zeros((n_bins_rho, n_bins_theta), dtype=np.uint64)
+
+    cos_precalculated = np.cos(theta_values)
+    sin_precalculated = np.sin(theta_values)
+
+    y_s, x_s = np.nonzero(image)
+
+    # Loop through all nonzero pixels above treshold
+    for i in tqdm(range(len(y_s)), desc='Hough transform'):
+        x = x_s[i]
+        y = y_s[i]
+
+        # Precalculate rhos
+        rhos = np.round(x * cos_precalculated + y *
+                        sin_precalculated).astype(np.int64)
+
+        # Bin the rhos
+        binned = np.digitize(rhos, rho_values) - 1
+
+        # Add to accumulator
+        for theta in range(n_bins_theta):
+            accumulator[binned[theta], theta] += 1
+
+    return accumulator
+
+
+def getNbestParirs(image, hugh, t_bins, r_bins, n):
+    np_twos = np.array(get_pairs(image, hugh, t_bins, r_bins))
+    argpar = np.argpartition(np_twos, len(np_twos)-n-1, 0)[-n:]
+
+    np_twos = np_twos[argpar]
+
+
+def threeE():
+    print("Exercise 3E")
+    brick_clr = imread("./images/bricks.jpg")
+    pier_clr = imread("./images/pier.jpg")
+    brick = imread_gray("./images/bricks.jpg")
+    pier = imread_gray("./images/pier.jpg")
+
+    brick_edge = findedges(brick, 1, 0.16)
+    pier_edge = findedges(pier, 1, 0.06)
+
+    print(brick_edge)
+    print("we are here")
+    brick_hugh_matrix = hough_find_lines(brick_edge, 200, 200, 0.16)
+    pier_hugh_matrix = hough_find_lines(pier_edge, 360, 360, 0.16)
+    print("hugh lines")
+    brick_hugh_nonmaxima = non_maxima_box(brick_hugh_matrix)
+    plt.imshow(brick_hugh_matrix)
+    plt.show()
+    pier_hugh_nonmaxima = non_maxima_box(pier_hugh_matrix)
+    print("non maxima")
+    brick_hug_10 = np.zeros_like(brick_hugh_nonmaxima)
+    pier_hug_10 = np.zeros_like(pier_hugh_nonmaxima)
+    best_points_brick = []
+    best_points_pier = []
+    for i in range(10):
+        best_points_brick.append(np.unravel_index(
+            np.argmax(brick_hugh_matrix), brick_hugh_matrix.shape))
+        brick_hugh_matrix[best_points_brick[-1]] = 0
+        brick_hug_10[best_points_brick[-1]] = 1
+        best_points_pier.append(np.unravel_index(
+            np.argmax(pier_hugh_matrix), pier_hugh_matrix.shape))
+        pier_hugh_matrix[best_points_pier[-1]] = 0
+        pier_hug_10[best_points_pier[-1]] = 1
+    print("hej")
+    a = get_pairs(brick, brick_hug_10, 360, 360)
+    plt.imshow(brick_clr)
+    for t, r in a:
+        draw_line(r, t, brick_clr.shape[0], brick_clr.shape[1])
+    plt.show()
+
+    plt.imshow(pier_clr)
+    for t, r in get_pairs(pier, pier_hug_10, 360, 360):
+        draw_line(r, t, pier_clr.shape[0], pier_clr.shape[1])
+    plt.show()
+
+    print("hola amigos")
+
+
 def exercise3():
     print("Exercise 3")
     # threeA()
     # threeB()
     # threeC()
-    threeD()
+    # threeD()
+    # threeE()
 
 
 def main():
@@ -520,7 +738,8 @@ def main():
     print("Hello World!")
     # exercise1()
     # exercise2()
-    exercise3()
+    # exercise3()
+    oneE()
 
 
 if __name__ == "__main__":

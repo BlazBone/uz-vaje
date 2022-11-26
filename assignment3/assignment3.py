@@ -387,7 +387,8 @@ def twoB(image):
 def twoC():
     t_low = 0.08
     t_high = 0.50
-    image = np.where(twoB(imread_gray("./images/museum.jpg")) < t_low, 0, 1)
+    image = np.where(twoB(imread_gray("./images/museum.jpg"))
+                     < t_low, 0, 1)
     image = image.astype(np.uint8)
     test, labels, _, _ = cv2.connectedComponentsWithStats(
         image, connectivity=8, ltype=cv2.CV_32S)
@@ -605,13 +606,13 @@ def exercise1():
 
 
 def exercise2():
-    print("Exercise 2")
-    twoA()
-    NMS = twoB(imread_gray("./images/museum.jpg"))
-    NMS = np.where(NMS > 0.16, 1, 0)
-    plt.imshow(NMS, cmap='gray')
-    plt.title("Non-Maxima Suppression, threshold = 0.16")
-    plt.show()
+    # print("Exercise 2")
+    # twoA()
+    # NMS = twoB(imread_gray("./images/museum.jpg"))
+    # NMS = np.where(NMS > 0.16, 1, 0)
+    # plt.imshow(NMS, cmap='gray')
+    # plt.title("Non-Maxima Suppression, threshold = 0.16")
+    # plt.show()
     twoC()
 
 
@@ -626,9 +627,13 @@ def exercise3():
 
 def main():
     print("Hello World!")
-    exercise1()
-    exercise2()
-    exercise3()
+    # exercise1()
+    # exercise2()
+    # oneE()
+    # threeD()
+    # threeE()
+    # exercise3()
+    twoC()
 
 
 if __name__ == "__main__":

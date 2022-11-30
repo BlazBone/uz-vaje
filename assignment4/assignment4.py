@@ -690,5 +690,3 @@ ax[0,1].imshow(graph_image_2)
 ax[1,0].imshow(graph_image)
 ax[1,1].imshow(graph_image_2)
 plt.show()
-
-

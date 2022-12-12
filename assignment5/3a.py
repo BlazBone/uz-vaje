@@ -9,9 +9,6 @@ def triangulate(points1, points2, cal_mtx1, cal_mtx2):
   points1 = np.array([points1[0], points1[1], 1])
   points2 = np.array([points2[0], points2[1], 1])
 
-  points_1 = T @ points1
-  points_2 =  T @ points2
-
   # points to matrix
   a= points1
   points1 = np.array([[0, -1, a[1]],
@@ -58,12 +55,7 @@ X = np.array(X)
 print(X.shape)
 print(X)
 
-
 # plt.scatter(X[:,0],X[:,1],X[:,2])
 # plt.show()
-
-
-
-
 # ax.scatter(2,3,4) # plot the point (2,3,4) on the figure
 plt.show()

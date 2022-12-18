@@ -90,9 +90,9 @@ def normalized_cross_correlation(img1, img2):
 
 
 def disparity(image1, image2):
-  image1 = cv2.resize(image1, None, fx=0.3, fy=0.3)
-  image2 = cv2.resize(image2, None, fx=0.3, fy=0.3)
-  window_size = 17
+  image1 = cv2.resize(image1, None, fx=0.4, fy=0.4)
+  image2 = cv2.resize(image2, None, fx=0.4, fy=0.4)
+  window_size = 21
   patch_size = 5
   disparity_map = np.zeros_like(image1)
 
@@ -135,6 +135,9 @@ plt.show()
 # %% [markdown]
 # ### A)
 # ![image.png](attachment:image.png)
+# 
+# 
+# presecisce teh dveh premic je torej tocka `T(1,1)`
 
 # %% [markdown]
 # ### B)
@@ -362,8 +365,10 @@ print(sum_error / len(inliers1))
 
 # %%
 ## vecotr product in matrix form
+
 def vec_prod(a):
   return np.array([[0, -a[2], a[1]], [a[2], 0, -a[0]], [-a[1], a[0], 0]])
+
 
 def triangulate(points_1, points_2, camera1, camera2):  
   # homogunes points
@@ -375,13 +380,16 @@ def triangulate(points_1, points_2, camera1, camera2):
   for one, two in zip(points_1, points_2):
     A1 = vec_prod(one) @ camera1
     A2 = vec_prod(two) @ camera2
-    A = np.vstack((A1, A2))
-    U, S, V = np.linalg.svd(A)
-    X = V[-1, :]
+    A = np.vstack((A1[:2, :], A2[:2, :]))
+    U, S, Vt = np.linalg.svd(A)
+    # Last column of V
+    X = Vt.T[:, -1]
+    # Normalize
     X = X / X[-1]
+    # Append to list
     P.append(X[:3])
+  
   return np.array(P)
-
 
 #callibration matrix
 camera1 = np.loadtxt("./data/epipolar/house1_camera.txt")
@@ -394,23 +402,22 @@ points_2 = points[:, 2:]
 
 
 #plot
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
 
 T = np.array([[-1, 0, 0], [0, 0, -1], [0, 1, 0]])
 
 # triangulate points
 X = triangulate(points_1, points_2, camera1, camera2)
  
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
 X = (T @ X.T).T
+# Plot points into 3d space
 ax.scatter(X[:, 0], X[:, 1], X[:, 2])
-
 for i in range(X.shape[0]):
   ax.text(X[i, 0], X[i, 1], X[i, 2], str(i))
 
-
 # plot pictures
-# # plot points 
+# # plot points on pictures with labels
 fig, ax = plt.subplots(1, 2)
 ax[0].imshow(plt.imread("./data/epipolar/house1.jpg"))
 ax[0].scatter(points_1[:, 0], points_1[:, 1], c='r', s=1)
@@ -420,6 +427,5 @@ ax[1].scatter(points_2[:, 0], points_2[:, 1], c='r', s=1)
 for i in range(points_1.shape[0]):
   ax[0].text(points_1[i, 0], points_1[i, 1], str(i))
   ax[1].text(points_2[i, 0], points_2[i, 1], str(i))
-
 
 plt.show()

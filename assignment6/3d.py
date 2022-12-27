@@ -35,6 +35,27 @@ def dualPCA(points, n_components):
     return U, S, V_t, mean 
 
 
+def pplot(U, avg_img, mean):
+    # Create linspace of sine values
+    x = np.linspace(-10, 10, 100)
+    sinx = np.sin(x)
+    cosx = np.cos(x)
+
+    for ix, value in enumerate(sinx):
+        # Project image into PCA subspace
+        y_i = np.matmul(avg_img - mean, U)
+        y_i[0] = value * 3000
+        y_i[1] = cosx[ix] * 3000
+
+        # Project image back into original subspace
+        x_i = np.matmul(y_i, U.T) + mean
+
+        # Plot the original image and the projected images
+        plt.imshow(x_i.reshape((96, 84)), cmap='gray')
+        plt.pause(0.001)
+        plt.draw()
+
+
 def main():
   image_size = (96,84)
   # get the average face from the dataset
@@ -47,22 +68,21 @@ def main():
 
   # mean of the data
   mean = np.mean(data, axis=1)
-
   # pick image 1
   image = data[:,0]
-
-  for i in range(64):
-    U, S, V_t, mean = dualPCA(data.T, 1)
-
-  # project the first image to the subspace space. 
-  # The first eigenvector is the most important one
+  x = np.linspace(-10, 10, 100)
+  sinx = np.sin(x)
+  cosx = np.cos(x)
+  U, S, V_t, mean = dualPCA(data.T, 1)
+  
+  for sin,cos in zip(sinx, cosx):
+    # project the first image to the subspace space. 
+    # The first eigenvector is the most important one
     y_i = U.T @ (image - mean)
     # Then, select one of the more important eigenvectors and manually set its corresponding weight in the projected vector to some value of your choice. 
     # For example, you can set the weight of the first eigenvector to 0.
-    
-
-
-    y_i[i] = 0
+    y_i[0] = sin * 3000
+    y_i[1] = cos * 3000
     # reconstruct the first image
     # Project the modified vector back to image space and observe the change.
     recon = U @ y_i + mean
@@ -71,7 +91,6 @@ def main():
     view.imshow(recon, cmap='gray')
     plt.pause(0.05)
     fig.canvas.draw()
-
 
 
 if __name__ == "__main__":

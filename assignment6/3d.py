@@ -34,28 +34,6 @@ def dualPCA(points, n_components):
     U = X @ U @ np.sqrt(np.diag(1/(S * (X.shape[1]-1))))
     return U, S, V_t, mean 
 
-
-def pplot(U, avg_img, mean):
-    # Create linspace of sine values
-    x = np.linspace(-10, 10, 100)
-    sinx = np.sin(x)
-    cosx = np.cos(x)
-
-    for ix, value in enumerate(sinx):
-        # Project image into PCA subspace
-        y_i = np.matmul(avg_img - mean, U)
-        y_i[0] = value * 3000
-        y_i[1] = cosx[ix] * 3000
-
-        # Project image back into original subspace
-        x_i = np.matmul(y_i, U.T) + mean
-
-        # Plot the original image and the projected images
-        plt.imshow(x_i.reshape((96, 84)), cmap='gray')
-        plt.pause(0.001)
-        plt.draw()
-
-
 def main():
   image_size = (96,84)
   # get the average face from the dataset
